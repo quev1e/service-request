@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+
+{% block title %}Комментарий к заявке №{{ request_obj.pk }}{% endblock %}
+
+
+{% block content %}
+    <h1>Комментарий к заявке №{{ request_obj.pk }}</h1>
+
+    <div class="card">
+        <form
+            method="post"
+            enctype="multipart/form-data"
+            action="{% url 'requests:add_comment' request_obj.pk %}"
+        >
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit">Отправить</button>
+        </form>
+    </div>
+
+    <a href="{% url 'requests:detail' request_obj.pk %}">Назад к заявке</a>
+{% endblock %}

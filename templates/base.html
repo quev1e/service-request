@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Сервисные заявки{% endblock %}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background: #f5f6f8;
+            color: #222;
+        }
+
+        header {
+            background: #24486d;
+            color: #fff;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header a {
+            color: #fff;
+            text-decoration: none;
+            margin-left: 16px;
+        }
+
+        main {
+            max-width: 1000px;
+            margin: 24px auto;
+            padding: 0 16px;
+        }
+
+        .card {
+            background: #fff;
+            border: 1px solid #dde1e6;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 13px;
+            background: #e7eef7;
+        }
+
+        .status-new { background: #fff3cd; }
+        .status-in-progress { background: #cfe8ff; }
+        .status-completed { background: #d4edda; }
+        .status-is-closed { background: #e2e3e5; }
+
+        form {
+            margin: 0;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 12px;
+            box-sizing: border-box;
+        }
+
+        button {
+            padding: 9px 16px;
+            border: none;
+            border-radius: 6px;
+            background: #24486d;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        .error {
+            color: #b02a37;
+            margin-bottom: 12px;
+        }
+
+        .muted {
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div>
+            <strong>Сервисные заявки</strong>
+        </div>
+
+        <nav>
+            {% if user.is_authenticated %}
+                <span>{{ user.username }}</span>
+                <a href="{% url 'requests:index' %}">Главная</a>
+
+                {% if user.role == "Resident" %}
+                    <a href="{% url 'requests:create' %}">Создать заявку</a>
+                {% endif %}
+
+                <form method="post" action="{% url 'users:logout' %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit">Выйти</button>
+                </form>
+            {% else %}
+                <a href="{% url 'users:login' %}">Войти</a>
+            {% endif %}
+        </nav>
+    </header>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>

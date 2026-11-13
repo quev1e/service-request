@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+
+
+{% block title %}Заявка №{{ request_obj.pk }}{% endblock %}
+
+
+{% block content %}
+    <h1>Заявка №{{ request_obj.pk }}</h1>
+
+
+    <div class="card">
+        <p><strong>Автор:</strong> {{ request_obj.author }}</p>
+        <p><strong>Категория:</strong> {{ request_obj.category.name }}</p>
+        <p><strong>Описание:</strong> {{ request_obj.description }}</p>
+        <p><strong>Дата создания:</strong> {{ request_obj.date|date:"d.m.Y H:i" }}</p>
+
+        <p>
+            <strong>Статус:</strong>
+            <span class="status status-{{ request_obj.status|lower|cut:" " }}">
+                {{ request_obj.get_status_display }}
+            </span>
+        </p>
+
+        <p>
+            <strong>Специалист:</strong>
+            {% if request_obj.specialist %}
+                {{ request_obj.specialist.get_full_name|default:request_obj.specialist.username }}
+            {% else %}
+                Не назначен
+            {% endif %}
+        </p>
+
+        {% if attachments %}
+            <ul>
+                {% for attachment in attachments %}
+                    <li>
+                        {% if attachment.file.url|lower|slice:"-4:" == ".jpg" or attachment.file.url|lower|slice:"-4:" == ".png" %}
+                            <img
+                                src="{{ attachment.file.url }}"
+                                alt="Вложение"
+                                style="max-width: 300px;"
+                            >
+                        {% endif %}
+
+                        <a href="{{ attachment.file.url }}" target="_blank">
+                            {{ attachment.file.name }}
+                        </a>
+
+                        <span class="muted">
+                            Загружено: {{ attachment.uploaded_at|date:"d.m.Y H:i" }}
+                        </span>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+        {% if can_edit %}
+            <p>
+                <a href="{% url 'requests:request-update' request_obj.pk %}">
+                    Изменить заявку
+                </a>
+                </span>
+                <a href="{% url 'requests:request-delete' request_obj.pk %}">
+                    Удалить заявку
+                </a>
+            </p>
+        {% endif %}
+    </div>
+
+
+    {% if can_comment %}
+        <div class="card">
+            <h2>Комментарии</h2>
+
+            {% for comment in comments %}
+                {% if not comment.parent %}
+                    <div class="comment">
+                        <p>
+                            <strong>{{ comment.author.username }}</strong>
+                            <span class="muted">
+                                {{ comment.created_at|date:"d.m.Y H:i" }}
+                            </span>
+                        </p>
+
+                        <p>{{ comment.text }}</p>
+
+                        {% if comment.attachments.all %}
+                            <div class="attachments">
+                                {% for attachment in comment.attachments.all %}
+                                    {% if attachment.file.url|lower|slice:"-4:" == ".jpg" or attachment.file.url|lower|slice:"-4:" == ".png" %}
+                                    <img
+                                        src="{{ attachment.file.url }}"
+                                        alt="Вложение"
+                                        style="max-width: 300px;"
+                                    >
+                                    {% endif %}
+                                    <p>
+                                        <a href="{{ attachment.file.url }}" target="_blank">
+                                            {{ attachment.file.name }}
+                                        </a>
+                                    </p>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+
+                        
+                        <details>
+                            <summary>Ответить</summary>
+
+                            <form
+                                method="post"
+                                enctype="multipart/form-data"
+                                action="{% url 'requests:add_comment' request_obj.pk %}"
+                            >
+                                {% csrf_token %}
+                                <input type="hidden" name="parent_id" value="{{ comment.pk }}">
+                                {{ comment_form.as_p }}
+                                <button type="submit">Отправить ответ</button>
+                            </form>
+                        </details>
+
+
+                        {% for reply in comment.replies.all %}
+                            <div class="reply">
+                                <p>
+                                    <strong>{{ reply.author.username }}</strong>
+                                    <span class="muted">
+                                        {{ reply.created_at|date:"d.m.Y H:i" }}
+                                    </span>
+                                </p>
+
+                                <p>{{ reply.text }}</p>
+
+                                {% if reply.attachments.all %}
+                                    <div class="attachments">
+                                        {% for attachment in reply.attachments.all %}
+                                            <p>
+                                                <a href="{{ attachment.file.url }}" target="_blank">
+                                                    {{ attachment.file.name }}
+                                                </a>
+                                            </p>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    {% if can_comment %}
+        <div class="card">
+            <h3>Добавить комментарий</h3>
+
+            <form
+                method="post"
+                enctype="multipart/form-data"
+                action="{% url 'requests:add_comment' request_obj.pk %}"
+            >
+                {% csrf_token %}
+                {{ comment_form.as_p }}
+                <button type="submit">Оставить комментарий</button>
+            </form>
+        </div>
+    {% endif %}
+
+
+    {% if can_take %}
+        <div class="card">
+            <form method="post" action="{% url 'requests:take' request_obj.pk %}">
+                {% csrf_token %}
+                <button type="submit">Взять в работу</button>
+            </form>
+        </div>
+    {% endif %}
+
+
+    {% if can_change_status %}
+        <div class="card">
+            <h2>Изменить статус</h2>
+
+            <form method="post" action="{% url 'requests:update_status' request_obj.pk %}">
+                {% csrf_token %}
+                <select name="status">
+                    {% if request_obj.status == "New" %}
+                        <option value="In progress">В работе</option>
+                    {% endif %}
+
+                    {% if request_obj.status == "In progress" %}
+                        <option value="Completed">Выполнена</option>
+                    {% endif %}
+                </select>
+
+                <button type="submit">Сохранить</button>
+            </form>
+        </div>
+    {% endif %}
+
+
+    <p>
+        <a href="{% url 'requests:index' %}">Назад к списку</a>
+    </p>
+{% endblock %}

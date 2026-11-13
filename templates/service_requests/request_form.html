@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Создание заявки{% endblock %}
+
+{% block content %}
+    <h1>Создать заявку</h1>
+
+    {% if form.errors %}
+        <div class="error">
+            Проверьте правильность заполнения формы.
+        </div>
+    {% endif %}
+
+    <div class="card">
+        <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Создать заявку</button>
+        </form>
+    </div>
+{% endblock %}
