@@ -54,6 +54,10 @@
     {% endif %}
 
     <p>
+        <a href="{% url 'users:user_update' user.pk %}">Изменить данные</a>
+    </p>
+
+    <p>
         <a href="{% url 'users:user_list' %}">Назад к списку</a>
     </p>
 {% endblock %}

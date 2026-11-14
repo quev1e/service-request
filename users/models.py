@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from .validators import phone_number_validator, contract_number_validator, room_number_validator
 
 
 class User(AbstractUser):
@@ -45,7 +46,7 @@ class User(AbstractUser):
 
     phone = models.CharField(
         max_length=12,
-        # validators = (phone_number,),
+        validators = (phone_number_validator,),
         verbose_name='Номер телефона'
     )
 
@@ -69,13 +70,13 @@ class ResidentProfile(models.Model):
 
     contract_number = models.CharField(
         max_length=13,
-        #validators=(contract_number_validator,),
+        validators=(contract_number_validator,),
         verbose_name='Номер договора'
     )
 
     room_number = models.CharField(
         max_length=5,
-        #validators=(room_number_validator,),
+        validators=(room_number_validator,),
         verbose_name='Номер комнаты'
     )
 

@@ -100,3 +100,42 @@ class SpecialistCreateForm(UserCreateForm):
             specialist = SpecialistProfile.objects.create(user=user)
             specialist.categories.set(self.cleaned_data['categories'])
         return user
+
+
+class UserUpdateForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = [
+            'username',
+            'first_name',
+            'last_name',
+            'patronymic',
+            'email',
+            'phone',
+            'is_active',
+        ]
+
+
+class ResidentUpdateForm(UserUpdateForm):
+    contract_number = forms.CharField(
+        max_length=13,
+        label='Номер договора',
+    )
+    room_number = forms.CharField(
+        max_length=5,
+        label='Номер комнаты'
+    )
+
+    class Meta(UserUpdateForm.Meta):
+        fields = UserUpdateForm.Meta.fields
+
+
+class SpecialistUpdateForm(UserUpdateForm):
+    categories = forms.ModelMultipleChoiceField(
+        queryset=Category.objects.all(),
+        label='Категории',
+        widget=forms.CheckboxSelectMultiple
+    )
+
+    class Meta(UserUpdateForm.Meta):
+        fields = UserUpdateForm.Meta.fields

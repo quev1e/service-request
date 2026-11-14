@@ -5,7 +5,7 @@ from django.contrib.auth.views import (
     PasswordChangeDoneView
 )
 from django.urls import path, reverse_lazy
-from .views import ResidentCreateView, SpecialistCreateView, UserListView, UserDetailView, AdminCreateView
+from .views import ResidentCreateView, SpecialistCreateView, UserListView, UserDetailView, AdminCreateView, UserUpdateView
 
 app_name = 'users'
 
@@ -22,6 +22,7 @@ urlpatterns = [
     path('create_resident/', ResidentCreateView.as_view(), name='create_resident'),
     path('create_specialist/', SpecialistCreateView.as_view(), name='create_specialist'),
     path('create_administrator/', AdminCreateView.as_view(), name='create_admin'),
-    path('user_list/', UserListView.as_view(), name='user_list'),
-    path('user_detail/<int:pk>/', UserDetailView.as_view(), name='user_detail')
+    path('users/', UserListView.as_view(), name='user_list'),
+    path('users/<int:pk>/', UserDetailView.as_view(), name='user_detail'),
+    path('users/<int:pk>/edit', UserUpdateView.as_view(), name='user_update')
 ]

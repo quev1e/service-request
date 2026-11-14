@@ -1,30 +1,45 @@
 from django.urls import reverse_lazy
-from django.views.generic import FormView, ListView, DetailView
+from django.views.generic import FormView, ListView, DetailView, UpdateView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from .forms import ResidentCreateForm, SpecialistCreateForm, UserCreateForm
+from .forms import ResidentCreateForm, SpecialistCreateForm, UserCreateForm, UserUpdateForm, SpecialistUpdateForm, ResidentUpdateForm
 from .models import User
 
-
-class UserDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
+class UserMixin:
     model = User
+    
+    def test_func(self):
+        return self.request.user.role == 'Administrator'
+
+
+class UserDetailView(UserMixin, LoginRequiredMixin, UserPassesTestMixin, DetailView):
+
     template_name = "users/user_detail.html"
     context_object_name = 'user'
 
-    def test_func(self):
-        return self.request.user.role == 'Administrator'
 
-class UserListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
-    model = User
+class UserListView(UserMixin, LoginRequiredMixin, UserPassesTestMixin, ListView):
     template_name = "users/user_list.html"
     context_object_name = 'users'
 
-    def test_func(self):
-        return self.request.user.role == 'Administrator'
 
+class UserUpdateView(UserMixin, LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+    template_name = 'users/user_create_form.html'
+    
+    success_url = reverse_lazy('users:user_list')
+    
+    def get_form_class(self):
+        user = self.get_object()
+
+        if user.role == 'Resident':
+            return ResidentUpdateForm
+        if user.role == 'Specialist':
+            return SpecialistUpdateForm
+
+        return UserUpdateForm
 
 
 class UserCreateView(LoginRequiredMixin, UserPassesTestMixin, FormView):
-    success_url = reverse_lazy('requests:index')
+    success_url = reverse_lazy('users:user_list')
     template_name = 'users/user_create_form.html'
 
     def test_func(self):
