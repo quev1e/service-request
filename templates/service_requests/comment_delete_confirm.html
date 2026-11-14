@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block title %}Удаление комментария{% endblock %}
+
+{% block content %}
+    <h1>Удалить комментарий?</h1>
+
+    <div class="card">
+        <p>{{ object.text }}</p>
+
+        <form method="post" action="">
+            {% csrf_token %}
+            <button type="submit">Да, удалить</button>
+            <a href="{% url 'requests:detail' request_obj.pk %}">Отмена</a>
+        </form>
+    </div>
+{% endblock %}

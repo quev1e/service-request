@@ -37,10 +37,13 @@
                         Не назначен
                     {% endif %}
                 </p>
+
                 <p>
+                    {% if item.status == "New" %}
                     <a href="{% url 'requests:request-update' item.pk %}">
                         Изменить заявку
                     </a>
+                    {% endif %}
                     </span>
                     <a href="{% url 'requests:request-delete' item.pk %}">
                         Удалить заявку

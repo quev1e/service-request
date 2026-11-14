@@ -9,7 +9,9 @@ from .views import (
     change_status,
     CommentCreateView,
     RequestUpdateView,
-    RequestDeleteView
+    RequestDeleteView,
+    CommentDeleteView,
+    CommentUpdateView
 )
 
 
@@ -24,7 +26,9 @@ urlpatterns = [
     path('requests/<int:pk>/delete/', RequestDeleteView.as_view(), name='request-delete'),
     path('requests/take/<int:pk>/', take_request, name='take'),
     path('requests/update_status/<int:pk>/', change_status, name='update_status'),
-    path('requests/<int:pk>/comments/add', CommentCreateView.as_view(), name='add_comment')
+    path('requests/<int:request_pk>/comments/add/', CommentCreateView.as_view(), name='add_comment'),
+    path('requests/<int:request_pk>/comments/<int:pk>/edit/', CommentUpdateView.as_view(), name='comment-update'),
+    path('requests/<int:request_pk>/comments/<int:pk>/delete/', CommentDeleteView.as_view(), name='comment-delete'),
 ]
 
 if settings.DEBUG:

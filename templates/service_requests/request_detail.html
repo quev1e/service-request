@@ -10,8 +10,8 @@
 
     <div class="card">
         <p><strong>Автор:</strong> {{ request_obj.author }}</p>
+        <p><strong>Комната:</strong> {{ request_obj.author.resident.room_number }}</p>
         <p><strong>Категория:</strong> {{ request_obj.category.name }}</p>
-        <p><strong>Описание:</strong> {{ request_obj.description }}</p>
         <p><strong>Дата создания:</strong> {{ request_obj.date|date:"d.m.Y H:i" }}</p>
 
         <p>
@@ -29,6 +29,8 @@
                 Не назначен
             {% endif %}
         </p>
+
+        <p><strong>Описание:</strong> {{ request_obj.description }}</p>
 
         {% if attachments %}
             <ul>
@@ -54,17 +56,33 @@
             </ul>
         {% endif %}
         {% if can_edit %}
-            <p>
-                <a href="{% url 'requests:request-update' request_obj.pk %}">
-                    Изменить заявку
-                </a>
-                </span>
-                <a href="{% url 'requests:request-delete' request_obj.pk %}">
-                    Удалить заявку
-                </a>
-            </p>
+        <p>
+            {% if request_obj.status == "New" %}
+                <a href="{% url 'requests:request-update' request_obj.pk %}">Изменить заявку</a>
+            {% endif %}
+            </span>
+            <a href="{% url 'requests:request-delete' request_obj.pk %}">Удалить заявку</a>
+        </p>
         {% endif %}
     </div>
+
+    {% if can_take %}
+        <div class="card">
+            <form method="post" action="{% url 'requests:take' request_obj.pk %}">
+                {% csrf_token %}
+                <button type="submit">Взять в работу</button>
+            </form>
+        </div>
+    {% endif %}
+
+    {% if can_change_status %}
+        <div class="card">
+            <form method="post" action="{% url 'requests:update_status' request_obj.pk %}">
+                {% csrf_token %}
+                <button type="submit">Завершить выполнение</button>
+            </form>
+        </div>
+    {% endif %}
 
 
     {% if can_comment %}
@@ -75,7 +93,7 @@
                 {% if not comment.parent %}
                     <div class="comment">
                         <p>
-                            <strong>{{ comment.author.username }}</strong>
+                            <strong>{{ comment.author.last_name }} {{ comment.author.last_name }}</strong>
                             <span class="muted">
                                 {{ comment.created_at|date:"d.m.Y H:i" }}
                             </span>
@@ -100,6 +118,18 @@
                                     </p>
                                 {% endfor %}
                             </div>
+                        {% endif %}
+
+                        {% if comment.author == user %}
+                            <p class="comment-actions">
+                                <a href="{% url 'requests:comment-update' request_obj.pk comment.pk %}">
+                                    Изменить
+                                </a>
+
+                                <a href="{% url 'requests:comment-delete' request_obj.pk comment.pk %}">
+                                    Удалить
+                                </a>
+                            </p>
                         {% endif %}
 
                         
@@ -141,6 +171,18 @@
                                         {% endfor %}
                                     </div>
                                 {% endif %}
+
+                                {% if reply.author == user %}
+                                    <p class="comment-actions">
+                                        <a href="{% url 'requests:comment-update' request_obj.pk reply.pk %}">
+                                            Изменить
+                                        </a>
+
+                                        <a href="{% url 'requests:comment-delete' request_obj.pk reply.pk %}">
+                                            Удалить
+                                        </a>
+                                    </p>
+                                {% endif %}
                             </div>
                         {% endfor %}
                     </div>
@@ -164,39 +206,6 @@
             </form>
         </div>
     {% endif %}
-
-
-    {% if can_take %}
-        <div class="card">
-            <form method="post" action="{% url 'requests:take' request_obj.pk %}">
-                {% csrf_token %}
-                <button type="submit">Взять в работу</button>
-            </form>
-        </div>
-    {% endif %}
-
-
-    {% if can_change_status %}
-        <div class="card">
-            <h2>Изменить статус</h2>
-
-            <form method="post" action="{% url 'requests:update_status' request_obj.pk %}">
-                {% csrf_token %}
-                <select name="status">
-                    {% if request_obj.status == "New" %}
-                        <option value="In progress">В работе</option>
-                    {% endif %}
-
-                    {% if request_obj.status == "In progress" %}
-                        <option value="Completed">Выполнена</option>
-                    {% endif %}
-                </select>
-
-                <button type="submit">Сохранить</button>
-            </form>
-        </div>
-    {% endif %}
-
 
     <p>
         <a href="{% url 'requests:index' %}">Назад к списку</a>

@@ -11,7 +11,7 @@
         <form
             method="post"
             enctype="multipart/form-data"
-            action="{% url 'requests:add_comment' request_obj.pk %}"
+            action=""
         >
             {% csrf_token %}
             {{ form.as_p }}

@@ -72,7 +72,7 @@ class RequestMixin:
     form_class = RequestForm
 
 
-class RequestCreateView(RequestMixin, CreateView, LoginRequiredMixin, UserPassesTestMixin):
+class RequestCreateView(RequestMixin, LoginRequiredMixin, UserPassesTestMixin, CreateView):
 
     def test_func(self):
         return self.request.user.role == 'Resident'
@@ -82,7 +82,7 @@ class RequestCreateView(RequestMixin, CreateView, LoginRequiredMixin, UserPasses
         return super().form_valid(form)
 
 
-class RequestUpdateView(RequestMixin, UpdateView, LoginRequiredMixin, UserPassesTestMixin):
+class RequestUpdateView(RequestMixin, LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
     def test_func(self):
         request = self.get_object()
@@ -91,16 +91,18 @@ class RequestUpdateView(RequestMixin, UpdateView, LoginRequiredMixin, UserPasses
         return request.author == user and request.status == 'New'
 
 
-class RequestDeleteView(RequestMixin, DeleteView, LoginRequiredMixin, UserPassesTestMixin):
+class RequestDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
+    
+    model = Request
+    template_name = 'service_requests/request_confirm_delete.html'
+    success_url = reverse_lazy('requests:index')
 
     def test_func(self):
-        request = self.get_object()
-        user = self.request.user
-
-        return request.author == user
+        obj = self.get_object()
+        return obj.author == self.request.user
 
 
-class RequestDetailView(DetailView, LoginRequiredMixin):
+class RequestDetailView(LoginRequiredMixin, DetailView):
     
     model = Request
     template_name = 'service_requests/request_detail.html'
@@ -145,7 +147,7 @@ class RequestDetailView(DetailView, LoginRequiredMixin):
             comment_form = CommentForm()
 
         return {
-            'can_edit': can_edit,
+            "can_edit": can_edit,
             'can_take': can_take,
             'can_change_status': can_change_status,
             'can_comment': can_comment,
@@ -211,32 +213,32 @@ def change_status(request, pk):
 
 class CommentMixin:
     model = Comment
-    template_name = 'service_requests/comment_form.html'
-    form_class = CommentForm
 
     def dispatch(self, request, *args, **kwargs):
         self.request_obj = get_object_or_404(
             Request,
-            pk=kwargs["pk"],
+            pk=kwargs["request_pk"],
         )
 
         return super().dispatch(request, *args, **kwargs)
-
-    def test_func(self):
-        comment = self.get_object()
-        user = self.request.user
-
-        return comment.author == user 
 
     def get_success_url(self):
         return reverse(
             "requests:detail",
             kwargs={"pk": self.request_obj.pk},
         )
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["request_obj"] = self.request_obj
+        return context
 
 
 
-class CommentCreateView(CreateView, CommentMixin, LoginRequiredMixin, UserPassesTestMixin):
+class CommentCreateView(CommentMixin, LoginRequiredMixin, UserPassesTestMixin, CreateView):
+    
+    form_class = CommentForm
+    template_name = 'service_requests/comment_form.html'
 
     def test_func(self):
         return self.request.user in (self.request_obj.author, self.request_obj.specialist)
@@ -259,16 +261,23 @@ class CommentCreateView(CreateView, CommentMixin, LoginRequiredMixin, UserPasses
             request=self.request_obj,
         )
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["request_obj"] = self.request_obj
-        return context
+class CommentUpdateView(CommentMixin, LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+    
+    form_class = CommentForm
+    template_name = 'service_requests/comment_form.html'
+    
+    def test_func(self):
+        comment = self.get_object()
+        user = self.request.user
+
+        return comment.author == user
 
 
+class CommentDeleteView(CommentMixin, LoginRequiredMixin, UserPassesTestMixin, DeleteView):
+    
+    template_name = 'service_requests/comment_delete_confirm.html'
 
-class CommentUpdateView(UpdateView, CommentMixin, LoginRequiredMixin, UserPassesTestMixin):
-    ...
+    def test_func(self):
+        comment = self.get_object()
+        return comment.author == self.request.user
 
-
-class CommentDeleteView(DeleteView, CommentMixin, LoginRequiredMixin, UserPassesTestMixin):
-    ...
