@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Профиль пользователя{% endblock %}
+
+{% block content %}
+    <h1>
+        {{ user.last_name }}
+        {{ user.first_name }}
+        {% if user.patronymic %}
+            {{ user.patronymic }}
+        {% endif %}
+    </h1>
+
+    <div class="card">
+        <p><strong>Логин:</strong> {{ user.username }}</p>
+        <p><strong>Email:</strong> {{ user.email }}</p>
+        <p><strong>Телефон:</strong> {{ user.phone }}</p>
+        <p><strong>Роль:</strong> {{ user.get_role_display }}</p>
+        <p><strong>Активен:</strong> {{ user.is_active|yesno:'Да,Нет' }}</p>
+    </div>
+
+    {% if user.role == 'Resident' and user.resident %}
+        <div class="card">
+            <h2>Данные проживающего</h2>
+
+            <p>
+                <strong>Номер договора:</strong>
+                {{ user.resident.contract_number }}
+            </p>
+
+            <p>
+                <strong>Номер комнаты:</strong>
+                {{ user.resident.room_number }}
+            </p>
+        </div>
+    {% endif %}
+
+    {% if user.role == 'Specialist' and user.specialist %}
+        <div class="card">
+            <h2>Данные специалиста</h2>
+
+            <p><strong>Категории:</strong></p>
+
+            {% if user.specialist.categories.all %}
+                <ul>
+                    {% for category in user.specialist.categories.all %}
+                        <li>{{ category.name }}</li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>Категории не выбраны.</p>
+            {% endif %}
+        </div>
+    {% endif %}
+
+    <p>
+        <a href="{% url 'users:user_list' %}">Назад к списку</a>
+    </p>
+{% endblock %}

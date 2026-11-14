@@ -40,7 +40,7 @@ class User(AbstractUser):
 
     email = models.EmailField(
         unique=True,
-        verbose_name='Емейл'
+        verbose_name='Емейл',
     )
 
     phone = models.CharField(
@@ -78,7 +78,7 @@ class ResidentProfile(models.Model):
         #validators=(room_number_validator,),
         verbose_name='Номер комнаты'
     )
-    
+
     def __str__(self):
         return f"Resident {self.user.last_name} {self.user.first_name}"
 

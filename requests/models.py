@@ -16,7 +16,7 @@ class Category(models.Model):
     name = models.CharField(
         choices=CATEGORIES
     )
-    
+
     def __str__(self):
         return self.name
 
@@ -62,7 +62,7 @@ class Request(models.Model):
         related_name="taken_requests",
         limit_choices_to={"role": "Specialist"}
     )
-    
+
     def __str__(self):
         return f"Request No {self.pk}"
 
@@ -90,7 +90,7 @@ class Comment(models.Model):
         blank=True,
         related_name='replies'
     )
-    
+
     def __str__(self):
         return f"Comment No {self.pk}"
 

@@ -104,6 +104,10 @@
                     {% csrf_token %}
                     <button type="submit">Выйти</button>
                 </form>
+                <form method="post" action="{% url 'users:password_change' %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit">Сменить пароль</button>
+                </form>
             {% else %}
                 <a href="{% url 'users:login' %}">Войти</a>
             {% endif %}

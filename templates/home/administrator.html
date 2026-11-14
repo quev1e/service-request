@@ -6,10 +6,54 @@
     <h1>Панель администратора</h1>
 
     <p>
-        Вы вошли как администратор.
+    <a href="{% url 'users:user_list' %}">Список пользователей</a>
+    <a href="{% url 'users:create_resident' %}">Создать проживающего</a>
+    <a href="{% url 'users:create_specialist' %}">Создать специалиста</a>
+    <a href="{% url 'users:create_admin' %}">Создать администратора</a>
     </p>
 
-    <p>
-        Управление пользователями и заявками будет добавлено позже.
-    </p>
+    <div class="card">
+        <h2>Все заявки</h2>
+
+        {% if requests %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>№</th>
+                        <th>Автор</th>
+                        <th>Категория</th>
+                        <th>Статус</th>
+                        <th>Специалист</th>
+                        <th>Дата</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for request_obj in requests %}
+                        <tr>
+                            <td>{{ request_obj.pk }}</td>
+                            <td>{{ request_obj.author }}</td>
+                            <td>{{ request_obj.category.name }}</td>
+                            <td>{{ request_obj.get_status_display }}</td>
+                            <td>
+                                {% if request_obj.specialist %}
+                                    {{ request_obj.specialist }}
+                                {% else %}
+                                    Не назначен
+                                {% endif %}
+                            </td>
+                            <td>{{ request_obj.date|date:"d.m.Y H:i" }}</td>
+                            <td>
+                                <a href="{% url 'requests:detail' request_obj.pk %}">
+                                    Открыть
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>Заявок пока нет.</p>
+        {% endif %}
+    </div>
 {% endblock %}

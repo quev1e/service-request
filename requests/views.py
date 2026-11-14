@@ -25,29 +25,31 @@ def index(request):
         raise PermissionDenied("Для пользователя не определена роль.")
 
     if role == 'Administrator':
-        return render(request, template_name)
+        context = {
+            'requests': Request.objects.all().order_by('-date'),
+            'user': request.user
+        }
 
-    if role == 'Resident':
-        requests = Request.objects.filter(author=request.user)
+    elif role == 'Resident':
+        requests = Request.objects.filter(author=request.user).order_by('-date')
 
         context = {
             'requests': requests,
             'user': request.user
         }
-        return render(request, template_name, context)
 
-    if role == 'Specialist':
+    elif role == 'Specialist':
         specialist_categories = request.user.specialist.categories.all()
-        
+
         status = request.GET.get("status")
         category_id = request.GET.get("category")
         specialist_id = request.GET.get("specialist")
-        
+
         requests = Request.objects.filter(category__in=specialist_categories).order_by("-date")
-        
+
         if specialist_id:
             requests = requests.filter(specialist_id=specialist_id)
-        
+
         if status:
             requests = requests.filter(status=status)
 
@@ -61,8 +63,10 @@ def index(request):
             "selected_category": category_id or "",
             "selected_specialist": specialist_id or ""
         }
+    else:
+        return
 
-        return render(request, template_name, context)
+    return render(request, template_name, context)
 
 
 class RequestMixin:

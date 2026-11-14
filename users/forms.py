@@ -1,0 +1,102 @@
+from django import forms
+from .models import User, ResidentProfile, SpecialistProfile
+from requests.models import Category
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
+
+
+class UserCreateForm(forms.ModelForm):
+
+    password1 = forms.CharField(
+        max_length=20,
+        label='Пароль',
+        widget=forms.PasswordInput
+    )
+    password2 = forms.CharField(
+        max_length=20,
+        label='Пароль',
+        widget=forms.PasswordInput
+    )
+
+    class Meta:
+        model = User
+        fields = ['username', 'first_name', 'last_name', 'patronymic', 'email', 'phone']
+
+    def clean(self):
+        cleaned_data = super().clean()
+        password1 = cleaned_data.get('password1')
+        password2 = cleaned_data.get('password2')
+
+        if password1 != password2:
+            self.add_error('password2', "Пароли не совпадают")
+
+        if password1:
+            try:
+                validate_password(password1)
+            except ValidationError as e:
+                print("Плохой пароль:", e.messages)
+        return cleaned_data
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.set_password(self.cleaned_data["password1"])
+
+        if commit:
+            user.save()
+
+        return user
+
+
+class ResidentCreateForm(UserCreateForm):
+
+    contract_number = forms.CharField(
+        max_length=13,
+        label='Номер договора'
+    )
+    room_number = forms.CharField(
+        max_length=5,
+        label='Номер комнаты'
+    )
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.role = "Resident"
+
+        if commit:
+            user.save()
+            ResidentProfile.objects.create(
+                user=user,
+                contract_number=self.cleaned_data["contract_number"],
+                room_number=self.cleaned_data["room_number"]
+            )
+        return user
+
+
+class SpecialistCreateForm(UserCreateForm):
+
+    categories = forms.ModelMultipleChoiceField(
+        queryset=Category.objects.all(),
+        label='Категории',
+        widget=forms.CheckboxSelectMultiple
+    )
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        if not cleaned_data.get('categories'):
+            self.add_error(
+                'categories',
+                'Выберите хотя бы одну категорию.'
+            )
+
+        return cleaned_data
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.role = "Specialist"
+
+        if commit:
+            user.save()
+            specialist = SpecialistProfile.objects.create(user=user)
+            specialist.categories.set(self.cleaned_data['categories'])
+        return user

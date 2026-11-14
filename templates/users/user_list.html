@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Пользователи{% endblock %}
+
+{% block content %}
+    <h1>Пользователи</h1>
+
+    <p>
+    <a href="{% url 'users:create_resident' %}">Создать проживающего</a>
+    <a href="{% url 'users:create_specialist' %}">Создать специалиста</a>
+    </p>
+
+    {% if users %}
+        <table>
+            <thead>
+                <tr>
+                    <th>ФИО</th>
+                    <th>Логин</th>
+                    <th>Email</th>
+                    <th>Роль</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                    <tr>
+                        <td>{{ user.get_full_name }}</td>
+                        <td>{{ user.username }}</td>
+                        <td>{{ user.email }}</td>
+                        <td>{{ user.role }}</td>
+                        <td>
+                            <a href="{% url 'users:user_detail' user.pk %}">
+                                Подробнее
+                            </a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>Пользователи не найдены.</p>
+    {% endif %}
+
+    <p>
+        <a href="{% url 'requests:index' %}">Назад</a>
+    </p>
+{% endblock %}

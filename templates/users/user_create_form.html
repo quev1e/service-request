@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}{{title}}{% endblock %}
+
+{% block content %}
+    <h1>{{title}}</h1>
+
+    <div class="card">
+        <form method="post">
+            {% csrf_token %}
+
+            {{ form.as_p }}
+
+            <button type="submit">Создать</button>
+        </form>
+    </div>
+
+    <p>
+        <a href="{% url 'requests:index' %}">Назад</a>
+    </p>
+{% endblock %}
