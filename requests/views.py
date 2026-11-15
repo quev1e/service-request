@@ -6,6 +6,7 @@ from django.views.generic import CreateView, DetailView, UpdateView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from .models import Request, Comment
 from .forms import RequestForm, CommentForm
+from django.db import transaction
 
 
 
@@ -40,15 +41,28 @@ def index(request):
 
     elif role == 'Specialist':
         specialist_categories = request.user.specialist.categories.all()
+        requests = Request.objects.filter(category__in=specialist_categories).order_by("status", "-date")
 
+        status = request.GET.get("status", "")
+        category_id = request.GET.get("category", "")
+        only_mine = request.GET.get("only_mine", "")
 
-        requests = Request.objects.filter(category__in=specialist_categories).order_by("-date")
+        if status in ("New", "In progress", "Completed"):
+            requests = requests.filter(status=status)
 
+        if category_id:
+            requests = requests.filter(category_id=category_id)
+
+        if only_mine == "1":
+            requests = requests.filter(specialist=request.user)
 
         context = {
-            'requests': requests,
-            'user': request.user,
-            'specialist_categories': specialist_categories,
+            "requests": requests,
+            "user": request.user,
+            "specialist_categories": specialist_categories,
+            "selected_status": status,
+            "selected_category": category_id,
+            "selected_only_mine": only_mine,
         }
     else:
         return
@@ -151,27 +165,39 @@ class RequestDetailView(LoginRequiredMixin, DetailView):
 
 @login_required
 def take_request(request, pk):
-
-    obj = get_object_or_404(Request, pk=pk)
-    user = request.user
-
+    
     if request.method != 'POST':
         return redirect('requests:index')
+
+    user = request.user
 
     if user.role != 'Specialist':
         raise PermissionDenied('Только специалист может брать заявки.')
 
-    categories = user.specialist.categories.all()
+    try:
+        with transaction.atomic():
+            obj = get_object_or_404(
+                Request.objects.select_for_update(),
+                pk=pk,
+            )
 
-    if obj.category not in categories:
-        raise PermissionDenied('Нельзя брать заявки не своей специализации.')
+            categories = user.specialist.categories.all()
 
-    if obj.status != 'New' or obj.specialist:
-        raise PermissionDenied('Заявка уже взята')
+            if obj.category not in categories:
+                raise PermissionDenied(
+                    "Нельзя брать заявки не своей специализации."
+                )
 
-    obj.specialist = user
-    obj.status = 'In progress'
-    obj.save()
+            if obj.status != "New" or obj.specialist:
+                raise PermissionDenied("Заявка уже взята.")
+
+            obj.specialist = user
+            obj.status = "In progress"
+            obj.save()
+
+    except PermissionDenied:
+        raise
+
     return redirect("requests:detail", pk=obj.pk)
 
 

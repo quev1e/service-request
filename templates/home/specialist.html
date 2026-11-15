@@ -5,6 +5,60 @@
 {% block content %}
     <h1>Заявки по вашим специализациям</h1>
 
+    <form method="get" class="request-filters">
+        <div class="filter">
+            <label for="status">Статус</label>
+            <select name="status" id="status">
+                <option value="">Все статусы</option>
+
+                <option value="New"
+                    {% if selected_status == 'New' %}selected{% endif %}>
+                    Новая
+                </option>
+
+                <option value="In progress"
+                    {% if selected_status == 'In progress' %}selected{% endif %}>
+                    В работе
+                </option>
+
+                <option value="Completed"
+                    {% if selected_status == 'Completed' %}selected{% endif %}>
+                    Выполнена
+                </option>
+            </select>
+        </div>
+
+        <div class="filter">
+            <label for="category">Категория</label>
+            <select name="category" id="category">
+                <option value="">Все категории</option>
+
+                {% for category in specialist_categories %}
+                    <option value="{{ category.pk }}"
+                        {% if selected_category == category.pk|stringformat:"s" %}selected{% endif %}>
+                        {{ category.get_name_display }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="filter">
+            <label>
+                <input
+                    type="checkbox"
+                    name="only_mine"
+                    value="1"
+                    {% if selected_only_mine == '1' %}checked{% endif %}
+                >
+                Только мои заявки
+            </label>
+        </div>
+
+        <button type="submit">Применить</button>
+        <a href="{% url 'requests:index' %}">Сбросить</a>
+    </form>
+
+
     {% if requests %}
         {% for item in requests %}
             <div class="card">

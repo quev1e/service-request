@@ -5,3 +5,4 @@ media/
 attachments/
 venv/
 .env
+*.env

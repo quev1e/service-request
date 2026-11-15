@@ -116,6 +116,18 @@
 
     <main>
         {% block content %}{% endblock %}
+
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="message message-{{ message.tags }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
     </main>
+
+    
 </body>
 </html>
