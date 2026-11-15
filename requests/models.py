@@ -14,7 +14,8 @@ class Category(models.Model):
     ]
 
     name = models.CharField(
-        choices=CATEGORIES
+        choices=CATEGORIES,
+        max_length=32
     )
 
     def __str__(self):
@@ -51,7 +52,8 @@ class Request(models.Model):
 
     status = models.CharField(
         choices=STATUSES,
-        default='New'
+        default='New',
+        max_length=16
     )
 
     specialist = models.ForeignKey(
@@ -89,6 +91,11 @@ class Comment(models.Model):
         null=True,
         blank=True,
         related_name='replies'
+    )
+    
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        null=True
     )
 
     def __str__(self):

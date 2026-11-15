@@ -34,7 +34,7 @@ class UserCreateForm(forms.ModelForm):
             try:
                 validate_password(password1)
             except ValidationError as e:
-                print("Плохой пароль:", e.messages)
+                self.add_error('password1', e)
         return cleaned_data
 
     def save(self, commit=True):
@@ -119,23 +119,60 @@ class UserUpdateForm(forms.ModelForm):
 class ResidentUpdateForm(UserUpdateForm):
     contract_number = forms.CharField(
         max_length=13,
-        label='Номер договора',
+        label="Номер договора",
     )
     room_number = forms.CharField(
         max_length=5,
-        label='Номер комнаты'
+        label="Номер комнаты",
     )
 
     class Meta(UserUpdateForm.Meta):
         fields = UserUpdateForm.Meta.fields
+
+    def __init__(self, *args, profile=None, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if profile:
+            self.fields["contract_number"].initial = profile.contract_number
+            self.fields["room_number"].initial = profile.room_number
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+
+        if commit:
+            user.save()
+
+            profile = user.resident
+            profile.contract_number = self.cleaned_data["contract_number"]
+            profile.room_number = self.cleaned_data["room_number"]
+            profile.save()
+
+        return user
 
 
 class SpecialistUpdateForm(UserUpdateForm):
     categories = forms.ModelMultipleChoiceField(
         queryset=Category.objects.all(),
-        label='Категории',
-        widget=forms.CheckboxSelectMultiple
+        label="Категории",
+        widget=forms.CheckboxSelectMultiple,
     )
 
     class Meta(UserUpdateForm.Meta):
         fields = UserUpdateForm.Meta.fields
+
+    def __init__(self, *args, profile=None, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if profile:
+            self.fields["categories"].initial = profile.categories.all()
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+
+        if commit:
+            user.save()
+
+            profile = user.specialist
+            profile.categories.set(self.cleaned_data["categories"])
+
+        return user

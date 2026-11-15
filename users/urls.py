@@ -24,5 +24,5 @@ urlpatterns = [
     path('create_administrator/', AdminCreateView.as_view(), name='create_admin'),
     path('users/', UserListView.as_view(), name='user_list'),
     path('users/<int:pk>/', UserDetailView.as_view(), name='user_detail'),
-    path('users/<int:pk>/edit', UserUpdateView.as_view(), name='user_update')
+    path('users/<int:pk>/edit/', UserUpdateView.as_view(), name='user_update')
 ]

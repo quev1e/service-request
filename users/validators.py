@@ -24,7 +24,7 @@ def contract_number_validator(value: str):
 
 def room_number_validator(value: str):
     
-    if not (re.fullmatch(r'\d{2}-d{2}', value) or re.fullmatch(r'\d{4}', value)):
+    if not (re.fullmatch(r'\d{2}-\d{2}', value) or re.fullmatch(r'\d{4}', value)):
         raise ValidationError(
             'Неверно введён номер комнаты!'
         )

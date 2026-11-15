@@ -41,27 +41,14 @@ def index(request):
     elif role == 'Specialist':
         specialist_categories = request.user.specialist.categories.all()
 
-        status = request.GET.get("status")
-        category_id = request.GET.get("category")
-        specialist_id = request.GET.get("specialist")
 
         requests = Request.objects.filter(category__in=specialist_categories).order_by("-date")
 
-        if specialist_id:
-            requests = requests.filter(specialist_id=specialist_id)
-
-        if status:
-            requests = requests.filter(status=status)
-
-        if category_id:
-            requests = requests.filter(category_id=category_id)
 
         context = {
             'requests': requests,
             'user': request.user,
-            "selected_status": status or "",
-            "selected_category": category_id or "",
-            "selected_specialist": specialist_id or ""
+            'specialist_categories': specialist_categories,
         }
     else:
         return

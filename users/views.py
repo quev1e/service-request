@@ -36,6 +36,17 @@ class UserUpdateView(UserMixin, LoginRequiredMixin, UserPassesTestMixin, UpdateV
             return SpecialistUpdateForm
 
         return UserUpdateForm
+    
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        user = self.get_object()
+
+        if user.role == "Resident":
+            kwargs["profile"] = user.resident
+        elif user.role == "Specialist":
+            kwargs["profile"] = user.specialist
+
+        return kwargs
 
 
 class UserCreateView(LoginRequiredMixin, UserPassesTestMixin, FormView):

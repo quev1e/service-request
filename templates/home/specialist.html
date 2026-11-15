@@ -5,56 +5,6 @@
 {% block content %}
     <h1>Заявки по вашим специализациям</h1>
 
-    <div class="card">
-        <h2>Фильтры</h2>
-
-        <form method="get">
-
-            <label for="specialist">Специалист</label>
-            <select name="specialist" id="specialist">
-                <option value="">Все</option>
-
-                <option value="{{ specialist.pk }}" {% if selected_category == specialist.pk|stringformat:"s" %}selected{% endif %}>
-                    Мои
-                </option>
-            </select>
-
-            <label for="status">Статус</label>
-            <select name="status" id="status">
-                <option value="">Все статусы</option>
-
-                <option value="New" {% if selected_status == "New" %}selected{% endif %}>
-                    Новая
-                </option>
-
-                <option value="In progress" {% if selected_status == "In progress" %}selected{% endif %}>
-                    В работе
-                </option>
-
-                <option value="Completed" {% if selected_status == "Completed" %}selected{% endif %}>
-                    Выполнена
-                </option>
-            </select>
-
-            <label for="category">Категория</label>
-            <select name="category" id="category">
-                <option value="">Все категории</option>
-
-                {% for category in specialist_categories %}
-                    <option
-                        value="{{ category.pk }}"
-                        {% if selected_category == category.pk|stringformat:"s" %}selected{% endif %}
-                    >
-                        {{ category.get_name_display }}
-                    </option>
-                {% endfor %}
-            </select>
-
-            <button type="submit">Применить</button>
-            <a href="{% url 'requests:index' %}">Сбросить</a>
-        </form>
-    </div>
-
     {% if requests %}
         {% for item in requests %}
             <div class="card">

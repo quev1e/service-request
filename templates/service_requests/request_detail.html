@@ -47,10 +47,6 @@
                         <a href="{{ attachment.file.url }}" target="_blank">
                             {{ attachment.file.name }}
                         </a>
-
-                        <span class="muted">
-                            Загружено: {{ attachment.uploaded_at|date:"d.m.Y H:i" }}
-                        </span>
                     </li>
                 {% endfor %}
             </ul>
@@ -93,7 +89,7 @@
                 {% if not comment.parent %}
                     <div class="comment">
                         <p>
-                            <strong>{{ comment.author.last_name }} {{ comment.author.last_name }}</strong>
+                            <strong>{{ comment.author.last_name }} {{ comment.author.first_name }}</strong>
                             <span class="muted">
                                 {{ comment.created_at|date:"d.m.Y H:i" }}
                             </span>
