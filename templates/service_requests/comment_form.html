@@ -1,23 +1,98 @@
 {% extends "base.html" %}
 
-
-{% block title %}Комментарий к заявке №{{ request_obj.pk }}{% endblock %}
-
+{% block title %}
+    {% if object %}Редактирование комментария{% else %}Новый комментарий{% endif %}
+{% endblock %}
 
 {% block content %}
-    <h1>Комментарий к заявке №{{ request_obj.pk }}</h1>
+    <div class="page-head">
+        <div>
+            <h1 class="page-title">
+                {% if object %}Редактировать комментарий{% else %}Новый комментарий{% endif %}
+            </h1>
+            <p class="page-subtitle">
+                Комментарий к заявке №{{ request_obj.pk }}.
+            </p>
+        </div>
 
-    <div class="card">
-        <form
-            method="post"
-            enctype="multipart/form-data"
-            action=""
-        >
-            {% csrf_token %}
-            {{ form.as_p }}
-            <button type="submit">Отправить</button>
-        </form>
+        <a class="btn btn-outline"
+           href="{% url 'requests:detail' request_obj.pk %}">
+            Назад
+        </a>
     </div>
 
-    <a href="{% url 'requests:detail' request_obj.pk %}">Назад к заявке</a>
+    <form method="post"
+          enctype="multipart/form-data"
+          class="card form-card form-grid">
+
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+            <div class="message message-error">
+                {{ form.non_field_errors }}
+            </div>
+        {% endif %}
+
+        <div class="form-row {% if form.text.errors %}has-error{% endif %}">
+            <label for="{{ form.text.id_for_label }}">Комментарий</label>
+
+            {{ form.text }}
+
+            {% if form.text.errors %}
+                <ul class="errorlist">
+                    {% for error in form.text.errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+
+        {% include "includes/attachment_fields.html" with file_field=form.file1 file_field2=form.file2 file_field3=form.file3 %}
+
+        {% if object.attachments.exists %}
+            <div class="existing-attachments">
+                <h3>Уже прикреплённые файлы</h3>
+
+                {% for attachment in object.attachments.all %}
+                    <div class="existing-attachment">
+                        {% if attachment.is_image %}
+                            <img class="existing-attachment-preview"
+                                src="{{ attachment.file.url }}"
+                                alt="Вложение">
+                        {% elif attachment.is_video %}
+                            <video class="existing-attachment-preview"
+                                controls>
+                                <source src="{{ attachment.file.url }}">
+                                Ваш браузер не поддерживает видео.
+                            </video>
+                        {% else %}
+                            <span class="attachment-icon">FILE</span>
+                        {% endif %}
+
+                        <a class="attachment-name"
+                        href="{{ attachment.file.url }}"
+                        target="_blank">
+                            {{ attachment.file.name }}
+                        </a>
+
+                        <label class="existing-attachment-delete">
+                            <input type="checkbox"
+                                name="delete_attachment_{{ attachment.pk }}"
+                                value="1">
+
+                            <span>Удалить</span>
+                        </label>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <div class="form-actions">
+            <button class="btn" type="submit">Сохранить</button>
+            <a class="btn btn-outline"
+               href="{% url 'requests:detail' request_obj.pk %}">
+                Отмена
+            </a>
+        </div>
+    </form>
 {% endblock %}

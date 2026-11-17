@@ -3,14 +3,25 @@
 {% block title %}Удаление заявки{% endblock %}
 
 {% block content %}
-    <h1>Удалить заявку №{{ object.pk }}?</h1>
-    <div class="card">
-        <p>Категория: {{ object.category }}</p>
-        <p>{{ object.description }}</p>
-        <form method="post">
+    <div class="card form-card">
+        <h1 class="page-title" style="font-size: 24px;">
+            Удалить заявку №{{ object.pk }}?
+        </h1>
+
+        <p class="page-subtitle">
+            Это действие нельзя отменить. Заявка, комментарии и вложения будут удалены.
+        </p>
+
+        <form method="post" class="form-actions">
             {% csrf_token %}
-            <button type="submit">Да, удалить</button>
-            <a href="{% url 'requests:detail' object.pk %}">Отмена</a>
+
+            <button class="btn btn-danger" type="submit">
+                Да, удалить
+            </button>
+
+            <a class="btn btn-outline" href="{% url 'requests:index' %}">
+                Отмена
+            </a>
         </form>
     </div>
 {% endblock %}

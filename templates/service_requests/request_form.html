@@ -1,21 +1,114 @@
 {% extends "base.html" %}
 
-{% block title %}Создание заявки{% endblock %}
+{% block title %}
+    {% if object %}Редактирование заявки{% else %}Создание заявки{% endif %}
+{% endblock %}
 
 {% block content %}
-    <h1>Создать заявку</h1>
-
-    {% if form.errors %}
-        <div class="error">
-            Проверьте правильность заполнения формы.
+    <div class="page-head">
+        <div>
+            <h1 class="page-title">
+                {% if object %}Редактировать заявку{% else %}Создать заявку{% endif %}
+            </h1>
+            <p class="page-subtitle">
+                Опишите проблему подробно. Можно приложить до трёх фото или видео.
+            </p>
         </div>
-    {% endif %}
-
-    <div class="card">
-        <form method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Создать заявку</button>
-        </form>
     </div>
+
+    <form method="post"
+          enctype="multipart/form-data"
+          class="card form-card form-grid">
+
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+            <div class="message message-error">
+                {{ form.non_field_errors }}
+            </div>
+        {% endif %}
+
+        <div class="form-row {% if form.category.errors %}has-error{% endif %}">
+            <label for="{{ form.category.id_for_label }}">Категория</label>
+
+            {{ form.category }}
+
+            {% if form.category.errors %}
+                <ul class="errorlist">
+                    {% for error in form.category.errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+
+        <div class="form-row {% if form.description.errors %}has-error{% endif %}">
+            <label for="{{ form.description.id_for_label }}">Описание проблемы</label>
+
+            {{ form.description }}
+
+            <span class="form-hint">
+                Например: «В ванной не работает смеситель, вода капает».
+            </span>
+
+            {% if form.description.errors %}
+                <ul class="errorlist">
+                    {% for error in form.description.errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+
+        {% include "includes/attachment_fields.html" with file_field=form.file1 file_field2=form.file2 file_field3=form.file3 %}
+
+        {% if object.attachments.exists %}
+            <div class="existing-attachments">
+                <h3>Уже прикреплённые файлы</h3>
+
+                {% for attachment in object.attachments.all %}
+                    <div class="existing-attachment">
+                        {% if attachment.is_image %}
+                            <img class="existing-attachment-preview"
+                                src="{{ attachment.file.url }}"
+                                alt="Вложение">
+                        {% elif attachment.is_video %}
+                            <video class="existing-attachment-preview"
+                                controls>
+                                <source src="{{ attachment.file.url }}">
+                                Ваш браузер не поддерживает видео.
+                            </video>
+                        {% else %}
+                            <span class="attachment-icon">FILE</span>
+                        {% endif %}
+
+                        <a class="attachment-name"
+                        href="{{ attachment.file.url }}"
+                        target="_blank">
+                            {{ attachment.file.name }}
+                        </a>
+
+                        <label class="existing-attachment-delete">
+                            <input type="checkbox"
+                                name="delete_attachment_{{ attachment.pk }}"
+                                value="1">
+
+                            <span>Удалить</span>
+                        </label>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+
+        <div class="form-actions">
+            <button class="btn" type="submit">
+                {% if object %}Сохранить изменения{% else %}Создать заявку{% endif %}
+            </button>
+
+            <a class="btn btn-outline" href="{% url 'requests:index' %}">
+                Отмена
+            </a>
+        </div>
+    </form>
 {% endblock %}

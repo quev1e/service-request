@@ -1,0 +1,125 @@
+<article class="ticket">
+    <div class="ticket-header">
+        <div class="ticket-heading">
+            <span class="ticket-eyebrow">Сервисная заявка</span>
+
+            <h2 class="ticket-title">
+                <a href="{% url 'requests:detail' item.pk %}">
+                    Заявка №{{ item.pk }}
+                </a>
+            </h2>
+        </div>
+
+        {% if item.status == "New" %}
+            <span class="ticket-status ticket-status-new">
+                {{ item.get_status_display }}
+            </span>
+        {% elif item.status == "In progress" %}
+            <span class="ticket-status ticket-status-progress">
+                {{ item.get_status_display }}
+            </span>
+        {% elif item.status == "Completed" %}
+            <span class="ticket-status ticket-status-completed">
+                {{ item.get_status_display }}
+            </span>
+        {% else %}
+            <span class="ticket-status">
+                {{ item.get_status_display }}
+            </span>
+        {% endif %}
+    </div>
+
+    <dl class="ticket-data">
+        <div class="ticket-data-item">
+            <dt>Категория</dt>
+
+            <dd>
+                {{ item.category.get_name_display }}
+            </dd>
+        </div>
+
+        {% if user.role != "Resident" %}
+            <div class="ticket-data-item">
+                <dt>Автор заявки</dt>
+                    {% if request.user.role == "Administrator" %}
+                        <dd>
+                            <a href="{% url 'users:user_detail' item.author.pk %}">
+                                {{ item.author.get_full_name|default:item.author.username }}
+                            </a>
+                        </dd>
+                    {% else %}
+                        <dd>
+                            {{ item.author.get_full_name|default:item.author.username }}
+                        </dd>
+                    {% endif %}
+                
+            </div>
+        {% endif %}
+
+        {% if user.role != "Specialist" %}
+            <div class="ticket-data-item">
+                <dt>Специалист</dt>
+
+                <dd>
+                    {% if item.specialist %}
+                        {% if request.user.role == "Administrator" %}
+                            <dd>
+                                <a href="{% url 'users:user_detail' item.specialist.pk %}">
+                                    {{ item.specialist.get_full_name|default:item.specialist.username }}
+                                </a>
+                            </dd>
+                        {% else %}
+                            <dd> {{ item.specialist.get_full_name|default:item.specialist.username }} </dd>
+                        {% endif %}
+                    {% else %}
+                        <span class="ticket-unassigned">
+                            Пока не назначен
+                        </span>
+                    {% endif %}
+                </dd>
+            </div>
+        {% endif %}
+    </dl>
+
+    <div class="ticket-description">
+        <h3>Описание проблемы</h3>
+
+        <p>{{ item.description|truncatechars:280 }}</p>
+    </div>
+
+    <div class="ticket-footer">
+        <div class="ticket-date">
+            <span>Дата создания</span>
+
+            <time datetime="{{ item.date|date:'c' }}">
+                {{ item.date|date:"d.m.Y H:i" }}
+            </time>
+        </div>
+
+        <div class="home-ticket-actions">
+            {% if request.user.role == "Resident" and item.author == request.user %}
+                {% if item.status == "New" %}
+                    <a class="btn btn-outline"
+                        href="{% url 'requests:request-update' item.pk %}">
+                        Редактировать
+                    </a>
+                {% endif %}
+                <a class="btn btn-danger"
+                    href="{% url 'requests:request-delete' item.pk %}">
+                    Удалить
+                </a>
+            {% endif %}
+
+            {% if request.user.role == "Specialist" and item.status == "New" and not item.specialist %}
+                <form method="post"
+                      action="{% url 'requests:take' item.pk %}">
+                    {% csrf_token %}
+
+                    <button class="btn" type="submit">
+                        Взять в работу
+                    </button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+</article>

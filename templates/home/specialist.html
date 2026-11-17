@@ -1,102 +1,90 @@
-{% extends "base.html" %}
+{% extends "home/requests_base.html" %}
 
-{% block title %}Заявки специалиста{% endblock %}
+{% block requests_page_title %}Заявки специалиста{% endblock %}
 
-{% block content %}
-    <h1>Заявки по вашим специализациям</h1>
+{% block requests_heading %}Рабочие заявки{% endblock %}
 
-    <form method="get" class="request-filters">
-        <div class="filter">
-            <label for="status">Статус</label>
-            <select name="status" id="status">
+{% block requests_description %}
+    Выбирайте обращения по своим специализациям
+    и следите за назначенными вам работами.
+{% endblock %}
+
+{% block requests_count_label %}
+    Найдено по текущим фильтрам
+{% endblock %}
+
+{% block requests_filters %}
+    <form method="get" class="specialist-filters">
+        <div class="specialist-filter">
+            <label for="filter-status">Статус</label>
+
+            <select name="status" id="filter-status">
                 <option value="">Все статусы</option>
 
-                <option value="New"
-                    {% if selected_status == 'New' %}selected{% endif %}>
+                <option value="New" {% if selected_status == "New" %}selected{% endif %}>
                     Новая
                 </option>
 
-                <option value="In progress"
-                    {% if selected_status == 'In progress' %}selected{% endif %}>
+                <option value="In progress" {% if selected_status == "In progress" %}selected{% endif %}>
                     В работе
                 </option>
 
-                <option value="Completed"
-                    {% if selected_status == 'Completed' %}selected{% endif %}>
+                <option value="Completed" {% if selected_status == "Completed" %}selected{% endif %}>
                     Выполнена
                 </option>
             </select>
         </div>
 
-        <div class="filter">
-            <label for="category">Категория</label>
-            <select name="category" id="category">
+        <div class="specialist-filter">
+            <label for="filter-category">Категория</label>
+
+            <select name="category" id="filter-category">
                 <option value="">Все категории</option>
 
                 {% for category in specialist_categories %}
-                    <option value="{{ category.pk }}"
-                        {% if selected_category == category.pk|stringformat:"s" %}selected{% endif %}>
+                    <option value="{{ category.pk }}" {% if selected_category == category.pk|stringformat:"s" %}selected{% endif %}>
                         {{ category.get_name_display }}
                     </option>
                 {% endfor %}
             </select>
         </div>
 
-        <div class="filter">
-            <label>
-                <input
-                    type="checkbox"
-                    name="only_mine"
-                    value="1"
-                    {% if selected_only_mine == '1' %}checked{% endif %}
-                >
-                Только мои заявки
-            </label>
+        <label class="specialist-filter-toggle">
+            <input type="checkbox"
+                   name="only_mine"
+                   value="1"
+                   {% if selected_only_mine == "1" %}checked{% endif %}>
+
+            <span>Только мои</span>
+        </label>
+
+        <div class="specialist-filter-buttons">
+            <button class="btn" type="submit">
+                Применить
+            </button>
+
+            <a class="btn btn-outline"
+               href="{% url 'requests:index' %}">
+                Сбросить
+            </a>
         </div>
-
-        <button type="submit">Применить</button>
-        <a href="{% url 'requests:index' %}">Сбросить</a>
     </form>
+{% endblock %}
 
+{% block requests_list_description %}
+    Новые обращения можно взять в работу прямо из списка.
+{% endblock %}
 
-    {% if requests %}
-        {% for item in requests %}
-            <div class="card">
-                <h3>
-                    <a href="{% url 'requests:detail' item.pk %}">
-                        Заявка №{{ item.pk }}
-                    </a>
-                </h3>
+{% block requests_empty_title %}Заявок не найдено{% endblock %}
 
-                <p><strong>Категория:</strong> {{ item.category.name }}</p>
-                <p><strong>Описание:</strong> {{ item.description }}</p>
-                <p><strong>Дата:</strong> {{ item.date|date:"d.m.Y H:i" }}</p>
+{% block requests_empty_description %}
+    По выбранным условиям обращений нет.
+    Попробуйте изменить фильтры.
+{% endblock %}
 
-                <p>
-                    <strong>Статус:</strong>
-                    <span class="status status-{{ item.status|lower|cut:" " }}">
-                        {{ item.get_status_display }}
-                    </span>
-                </p>
-
-                <p>
-                    <strong>Специалист:</strong>
-                    {% if item.specialist %}
-                        {{ item.specialist.get_full_name|default:item.specialist.username }}
-                    {% else %}
-                        Не назначен
-                    {% endif %}
-                </p>
-
-                {% if item.status == "New" and not item.specialist %}
-                    <form method="post" action="{% url 'requests:take' item.pk %}">
-                        {% csrf_token %}
-                        <button type="submit">Взять в работу</button>
-                    </form>
-                {% endif %}
-            </div>
-        {% endfor %}
-    {% else %}
-        <p>По выбранным фильтрам заявок нет.</p>
-    {% endif %}
+{% block requests_empty_actions %}
+    <a class="btn btn-outline home-empty-action"
+       href="{% url 'requests:index' %}">
+        Сбросить фильтры
+    </a>
 {% endblock %}

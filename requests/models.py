@@ -19,7 +19,7 @@ class Category(models.Model):
     )
 
     def __str__(self):
-        return self.name
+        return self.get_name_display()
 
 
 class Request(models.Model):
@@ -121,6 +121,17 @@ class Attachment(models.Model):
         blank=True,
         null=True
     )
+    
+    @property
+    def is_image(self):
+        name = self.file.name.lower()
+        return name.endswith((".jpg", ".jpeg", ".png", ".webp"))
+
+    @property
+    def is_video(self):
+        name = self.file.name.lower()
+        return name.endswith((".mp4", ".mov", ".webm"))
+    
 
     def __str__(self):
         return self.file.name

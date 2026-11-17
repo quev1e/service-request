@@ -1,57 +1,26 @@
-{% extends "base.html" %}
+{% extends "home/requests_base.html" %}
 
-{% block title %}Мои заявки{% endblock %}
+{% block requests_page_title %}Мои заявки{% endblock %}
 
-{% block content %}
-    <h1>Мои заявки</h1>
+{% block requests_heading %}Мои заявки{% endblock %}
 
-    <p>
-        <a href="{% url 'requests:create' %}">Создать заявку</a>
-    </p>
+{% block requests_description %}
+    Сообщайте о проблемах, следите за выполнением
+    и общайтесь со специалистами.
+{% endblock %}
 
-    {% if requests %}
-        {% for item in requests %}
-            <div class="card">
-                <h3>
-                    <a href="{% url 'requests:detail' item.pk %}">
-                        Заявка №{{ item.pk }}
-                    </a>
-                </h3>
+{% block requests_list_heading %}История обращений{% endblock %}
 
-                <p><strong>Категория:</strong> {{ item.category.name }}</p>
-                <p><strong>Описание:</strong> {{ item.description }}</p>
-                <p><strong>Дата:</strong> {{ item.date|date:"d.m.Y H:i" }}</p>
+{% block requests_empty_title %}У вас пока нет заявок{% endblock %}
 
-                <p>
-                    <strong>Статус:</strong>
-                    <span class="status status-{{ item.status|lower|cut:" " }}">
-                        {{ item.get_status_display }}
-                    </span>
-                </p>
+{% block requests_empty_description %}
+    Если что-то сломалось или нужна помощь,
+    создайте первое обращение.
+{% endblock %}
 
-                <p>
-                    <strong>Специалист:</strong>
-                    {% if item.specialist %}
-                        {{ item.specialist.get_full_name|default:item.specialist.username }}
-                    {% else %}
-                        Не назначен
-                    {% endif %}
-                </p>
-
-                <p>
-                    {% if item.status == "New" %}
-                    <a href="{% url 'requests:request-update' item.pk %}">
-                        Изменить заявку
-                    </a>
-                    {% endif %}
-                    </span>
-                    <a href="{% url 'requests:request-delete' item.pk %}">
-                        Удалить заявку
-                    </a>
-                </p>
-            </div>
-        {% endfor %}
-    {% else %}
-        <p>У вас пока нет заявок.</p>
-    {% endif %}
+{% block requests_empty_actions %}
+    <a class="btn home-empty-action"
+       href="{% url 'requests:create' %}">
+        Создать заявку
+    </a>
 {% endblock %}

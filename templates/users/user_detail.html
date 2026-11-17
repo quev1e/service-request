@@ -3,61 +3,167 @@
 {% block title %}Профиль пользователя{% endblock %}
 
 {% block content %}
-    <h1>
-        {{ user.last_name }}
-        {{ user.first_name }}
-        {% if user.patronymic %}
-            {{ user.patronymic }}
-        {% endif %}
-    </h1>
+    <div class="page-head">
+        <div>
+            <h1 class="page-title">
+                {{ user.last_name }}
+                {{ user.first_name }}
+                {% if user.patronymic %}
+                    {{ user.patronymic }}
+                {% endif %}
+            </h1>
 
-    <div class="card">
-        <p><strong>Логин:</strong> {{ user.username }}</p>
-        <p><strong>Email:</strong> {{ user.email }}</p>
-        <p><strong>Телефон:</strong> {{ user.phone }}</p>
-        <p><strong>Роль:</strong> {{ user.get_role_display }}</p>
-        <p><strong>Активен:</strong> {{ user.is_active|yesno:'Да,Нет' }}</p>
+            <p class="page-subtitle">
+                Профиль пользователя
+            </p>
+        </div>
+
+        <a class="btn btn-outline"
+           href="{% url 'users:user_update' user.pk %}">
+            Редактировать
+        </a>
     </div>
 
-    {% if user.role == 'Resident' and user.resident %}
-        <div class="card">
-            <h2>Данные проживающего</h2>
+    <article class="card request-card">
+        <div class="request-top">
+            <h2 class="request-title">Основная информация</h2>
 
-            <p>
-                <strong>Номер договора:</strong>
-                {{ user.resident.contract_number }}
-            </p>
-
-            <p>
-                <strong>Номер комнаты:</strong>
-                {{ user.resident.room_number }}
-            </p>
+            <span class="chip">
+                {{ user.get_role_display }}
+            </span>
         </div>
+
+        <div class="info-list">
+            <div class="info-row">
+                <span class="info-label">Логин</span>
+                <span class="info-value">{{ user.username }}</span>
+            </div>
+
+            <div class="info-row">
+                <span class="info-label">Фамилия</span>
+                <span class="info-value">{{ user.last_name }}</span>
+            </div>
+
+            <div class="info-row">
+                <span class="info-label">Имя</span>
+                <span class="info-value">{{ user.first_name }}</span>
+            </div>
+
+            <div class="info-row">
+                <span class="info-label">Отчество</span>
+                <span class="info-value">{{ user.patronymic|default:"—" }}</span>
+            </div>
+
+            <div class="info-row">
+                <span class="info-label">Email</span>
+                <span class="info-value">{{ user.email|default:"—" }}</span>
+            </div>
+
+            <div class="info-row">
+                <span class="info-label">Телефон</span>
+                <span class="info-value">{{ user.phone|default:"—" }}</span>
+            </div>
+
+            <div class="info-row">
+                <span class="info-label">Статус аккаунта</span>
+                <span class="info-value">
+                    {{ user.is_active|yesno:"Активен,Неактивен" }}
+                </span>
+            </div>
+
+            <div class="info-row">
+                <span class="info-label">Дата регистрации</span>
+                <span class="info-value">
+                    {{ user.date_joined|date:"d.m.Y H:i" }}
+                </span>
+            </div>
+
+            <div class="info-row">
+                <span class="info-label">Последний вход</span>
+                <span class="info-value">
+                    {% if user.last_login %}
+                        {{ user.last_login|date:"d.m.Y H:i" }}
+                    {% else %}
+                        Ещё не входил
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+    </article>
+
+    {% if user.role == "Resident" and user.resident %}
+        <article class="card request-card">
+            <div class="request-top">
+                <h2 class="request-title">Данные проживающего</h2>
+            </div>
+
+            <div class="info-list">
+                <div class="info-row">
+                    <span class="info-label">Номер договора</span>
+                    <span class="info-value">
+                        {{ user.resident.contract_number }}
+                    </span>
+                </div>
+
+                <div class="info-row">
+                    <span class="info-label">Номер комнаты</span>
+                    <span class="info-value">
+                        {{ user.resident.room_number }}
+                    </span>
+                </div>
+            </div>
+        </article>
     {% endif %}
 
-    {% if user.role == 'Specialist' and user.specialist %}
-        <div class="card">
-            <h2>Данные специалиста</h2>
+    {% if user.role == "Specialist" and user.specialist %}
+        <article class="card request-card">
+            <div class="request-top">
+                <h2 class="request-title">Данные специалиста</h2>
+            </div>
 
-            <p><strong>Категории:</strong></p>
+            <span class="info-label">Категории</span>
 
-            {% if user.specialist.categories.all %}
-                <ul>
-                    {% for category in user.specialist.categories.all %}
-                        <li>{{ category.name }}</li>
-                    {% endfor %}
-                </ul>
-            {% else %}
-                <p>Категории не выбраны.</p>
-            {% endif %}
-        </div>
+            <div class="info-tags">
+                {% for category in user.specialist.categories.all %}
+                    <span class="chip">
+                        {{ category.get_name_display }}
+                    </span>
+                {% empty %}
+                    <span class="info-empty">
+                        Категории не выбраны.
+                    </span>
+                {% endfor %}
+            </div>
+        </article>
     {% endif %}
 
-    <p>
-        <a href="{% url 'users:user_update' user.pk %}">Изменить данные</a>
-    </p>
+    <div class="form-actions">
+        <a class="btn btn-outline"
+            href="{% url 'users:user_update' user.pk %}">
+            Изменить данные
+        </a>
+    </div>
+    {% if user.role != "Administrator" %}
+        <section class="profile-requests">
+            <div class="page-head">
+                <div>
+                    <h2 class="request-title">{{ requests_title }}</h2>
+                    <p class="page-subtitle">
+                        Всего: {{ user_requests|length }}
+                    </p>
+                </div>
+            </div>
 
-    <p>
-        <a href="{% url 'users:user_list' %}">Назад к списку</a>
-    </p>
+            {% for item in user_requests %}
+                {% include "includes/ticket_card.html" with item=item user=user  %}
+            {% endfor %}
+        </section>
+    {% endif %}
+
+    <div class="form-actions">
+        <a class="btn btn-outline"
+           href="{% url 'users:user_list' %}">
+            Назад к списку
+        </a>
+    </div>
 {% endblock %}

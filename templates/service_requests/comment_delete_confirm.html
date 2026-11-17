@@ -3,15 +3,29 @@
 {% block title %}Удаление комментария{% endblock %}
 
 {% block content %}
-    <h1>Удалить комментарий?</h1>
+    <div class="card form-card">
+        <h1 class="page-title" style="font-size: 24px;">
+            Удалить комментарий?
+        </h1>
 
-    <div class="card">
-        <p>{{ object.text }}</p>
+        <p class="page-subtitle">
+            Это действие нельзя отменить.
+        </p>
 
-        <form method="post" action="">
+        <form method="post">
             {% csrf_token %}
-            <button type="submit">Да, удалить</button>
-            <a href="{% url 'requests:detail' request_obj.pk %}">Отмена</a>
+
+            <div class="form-actions">
+                <button class="btn btn-danger"
+                        type="submit">
+                    Да, удалить
+                </button>
+
+                <a class="btn btn-outline"
+                href="{% url 'requests:detail' request_obj.pk %}">
+                    Отмена
+                </a>
+            </div>
         </form>
     </div>
 {% endblock %}

@@ -3,19 +3,50 @@
 {% block title %}Вход{% endblock %}
 
 {% block content %}
-    <h1>Вход</h1>
+    <div class="card auth-card">
+        <h1 class="auth-title">Вход в систему</h1>
+        <p class="page-subtitle" style="margin-bottom: 20px;">
+            Войдите, чтобы работать с заявками.
+        </p>
 
-    {% if form.errors %}
-        <div class="error">
-            Неверное имя пользователя или пароль.
-        </div>
-    {% endif %}
-
-    <div class="card">
-        <form method="post">
+        <form method="post" class="form-grid">
             {% csrf_token %}
-            {{ form.as_p }}
-            <button type="submit">Войти</button>
+
+            <div class="form-row {% if form.username.errors %}has-error{% endif %}">
+                <label for="{{ form.username.id_for_label }}">Логин</label>
+
+                {{ form.username }}
+
+                {% if form.username.errors %}
+                    <ul class="errorlist">
+                        {% for error in form.username.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+
+            <div class="form-row {% if form.password.errors %}has-error{% endif %}">
+                <label for="{{ form.password.id_for_label }}">Пароль</label>
+
+                {{ form.password }}
+
+                {% if form.password.errors %}
+                    <ul class="errorlist">
+                        {% for error in form.password.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+
+            {% if form.non_field_errors %}
+                <div class="message message-error">
+                    {{ form.non_field_errors }}
+                </div>
+            {% endif %}
+
+            <button class="btn" type="submit">Войти</button>
         </form>
     </div>
 {% endblock %}

@@ -4,9 +4,12 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.views.generic import CreateView, DetailView, UpdateView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.db.models import Case, When, Value, IntegerField
 from .models import Request, Comment
 from .forms import RequestForm, CommentForm
 from django.db import transaction
+
+
 
 
 
@@ -41,7 +44,8 @@ def index(request):
 
     elif role == 'Specialist':
         specialist_categories = request.user.specialist.categories.all()
-        requests = Request.objects.filter(category__in=specialist_categories).order_by("status", "-date")
+        requests = Request.objects.filter(category__in=specialist_categories).order_by("-date")
+
 
         status = request.GET.get("status", "")
         category_id = request.GET.get("category", "")
@@ -55,6 +59,23 @@ def index(request):
 
         if only_mine == "1":
             requests = requests.filter(specialist=request.user)
+        
+        requests = requests.annotate(
+        priority=Case(
+            When(
+                status="In progress",
+                specialist=request.user,
+                then=Value(1),
+            ),
+            When(
+                status="New",
+                specialist__isnull=True,
+                then=Value(2),
+            ),
+            default=Value(5),
+            output_field=IntegerField(),
+        )
+    ).order_by("priority", "status", "-date")
 
         context = {
             "requests": requests,
@@ -94,6 +115,16 @@ class RequestUpdateView(RequestMixin, LoginRequiredMixin, UserPassesTestMixin, U
         user = self.request.user
 
         return request.author == user and request.status == 'New'
+    
+    def form_valid(self, form):
+        response = super().form_valid(form)
+
+        for attachment in self.object.attachments.all():
+            if self.request.POST.get(f"delete_attachment_{attachment.pk}") == "1":
+                attachment.file.delete(save=False)
+                attachment.delete()
+
+        return response
 
 
 class RequestDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
@@ -159,7 +190,8 @@ class RequestDetailView(LoginRequiredMixin, DetailView):
             'request_obj': request_obj,
             "attachments": attachments,
             "comments": comments,
-            "comment_form": comment_form
+            "comment_form": comment_form,
+            "user": user
         }
 
 
@@ -288,6 +320,16 @@ class CommentUpdateView(CommentMixin, LoginRequiredMixin, UserPassesTestMixin, U
         user = self.request.user
 
         return comment.author == user
+    
+    def form_valid(self, form):
+        response = super().form_valid(form)
+
+        for attachment in self.object.attachments.all():
+            if self.request.POST.get(f"delete_attachment_{attachment.pk}") == "1":
+                attachment.file.delete(save=False)
+                attachment.delete()
+
+        return response
 
 
 class CommentDeleteView(CommentMixin, LoginRequiredMixin, UserPassesTestMixin, DeleteView):

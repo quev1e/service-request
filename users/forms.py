@@ -142,10 +142,13 @@ class ResidentUpdateForm(UserUpdateForm):
         if commit:
             user.save()
 
-            profile = user.resident
-            profile.contract_number = self.cleaned_data["contract_number"]
-            profile.room_number = self.cleaned_data["room_number"]
-            profile.save()
+            ResidentProfile.objects.update_or_create(
+                user=user,
+                defaults={
+                    "contract_number": self.cleaned_data["contract_number"],
+                    "room_number": self.cleaned_data["room_number"],
+                },
+            )
 
         return user
 
@@ -172,7 +175,9 @@ class SpecialistUpdateForm(UserUpdateForm):
         if commit:
             user.save()
 
-            profile = user.specialist
+            profile, created = SpecialistProfile.objects.get_or_create(
+                user=user
+            )
             profile.categories.set(self.cleaned_data["categories"])
 
         return user

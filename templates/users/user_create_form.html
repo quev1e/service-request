@@ -1,21 +1,54 @@
 {% extends "base.html" %}
 
-{% block title %}{{title}}{% endblock %}
+{% block title %}{{ title|default:"Пользователь" }}{% endblock %}
 
 {% block content %}
-    <h1>{{title}}</h1>
+    <div class="page-head">
+        <div>
+            <h1 class="page-title">{{ title|default:"Пользователь" }}</h1>
+            <p class="page-subtitle">
+                Заполните данные пользователя.
+            </p>
+        </div>
 
-    <div class="card">
-        <form method="post">
-            {% csrf_token %}
-
-            {{ form.as_p }}
-
-            <button type="submit">Сохранить</button>
-        </form>
+        <a class="btn btn-outline" href="{% url 'users:user_list' %}">
+            Назад
+        </a>
     </div>
 
-    <p>
-        <a href="{% url 'requests:index' %}">Назад</a>
-    </p>
+    <form method="post" class="card form-card form-grid">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+            <div class="message message-error">
+                {{ form.non_field_errors }}
+            </div>
+        {% endif %}
+
+        {% for field in form %}
+            <div class="form-row {% if field.errors %}has-error{% endif %}">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+
+                {{ field }}
+
+                {% if field.errors %}
+                    <ul class="errorlist">
+                        {% for error in field.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+        {% endfor %}
+
+        <div class="form-actions">
+            <button class="btn" type="submit">
+                {% if object %}Сохранить изменения{% else %}Создать{% endif %}
+            </button>
+
+            <a class="btn btn-outline" href="{% url 'users:user_list' %}">
+                Отмена
+            </a>
+        </div>
+    </form>
 {% endblock %}

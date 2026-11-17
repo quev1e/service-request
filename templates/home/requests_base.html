@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% block requests_page_title %}Заявки{% endblock %}
+{% endblock %}
+
+{% block content %}
+    <section class="home-intro">
+        <div class="home-intro-content">
+            <h1 class="home-title">
+                {% block requests_heading %}Заявки{% endblock %}
+            </h1>
+
+            <p class="home-subtitle">
+                {% block requests_description %}{% endblock %}
+            </p>
+
+            {% block requests_intro_extra %}{% endblock %}
+        </div>
+
+    </section>
+
+    {% block requests_filters %}{% endblock %}
+
+    <div class="home-section-heading">
+        <h2>
+            {% block requests_list_heading %}Список заявок{% endblock %}
+        </h2>
+
+        <p>
+            {% block requests_list_description %}
+                Откройте заявку, чтобы посмотреть подробности.
+            {% endblock %}
+        </p>
+    </div>
+
+    <div class="tickets-list home-tickets">
+        {% for item in requests %}
+            {% include "includes/ticket_card.html" with item=item  %}
+        {% empty %}
+            <div class="tickets-empty">
+                <h2>
+                    {% block requests_empty_title %}
+                        Заявок пока нет
+                    {% endblock %}
+                </h2>
+
+                <p>
+                    {% block requests_empty_description %}
+                        Здесь появятся новые обращения.
+                    {% endblock %}
+                </p>
+
+                {% block requests_empty_actions %}{% endblock %}
+            </div>
+        {% endfor %}
+    </div>
+{% endblock %}

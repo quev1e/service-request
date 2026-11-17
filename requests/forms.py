@@ -23,6 +23,12 @@ class RequestForm(forms.ModelForm):
             validators=attachment_validators
     )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        for field_name in ("file1", "file2", "file3"):
+            if field_name in self.fields:
+                self.fields[field_name].widget.attrs["class"] = "file-input"
     class Meta:
         model = Request
 
@@ -42,6 +48,8 @@ class RequestForm(forms.ModelForm):
                         file=file
                     )
         return request_obj
+    
+
 
 
 class CommentForm(forms.ModelForm):

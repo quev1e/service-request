@@ -1,0 +1,33 @@
+<div class="form-row attachment-fields">
+    <label class="attachment-button"
+        for="{{ file_field.id_for_label }}">
+    <span class="attachment-button-icon">📎</span>
+    <span class="attachment-button-text">Прикрепить файл</span>
+</label>
+
+{{ file_field }}
+
+    <span class="attachment-file-name" hidden></span>
+</div>
+
+<div class="form-row attachment-fields hidden">
+    <label class="attachment-button" for="{{ file_field2.id_for_label }}">
+        <span class="attachment-button-icon">📎</span>
+        <span class="attachment-button-text">Прикрепить второй файл</span>
+    </label>
+
+    {{ file_field2 }}
+
+    <span class="attachment-file-name" hidden></span>
+</div>
+
+<div class="form-row attachment-fields hidden">
+    <label class="attachment-button" for="{{ file_field3.id_for_label }}">
+        <span class="attachment-button-icon">📎</span>
+        <span class="attachment-button-text">Прикрепить третий файл</span>
+    </label>
+
+    {{ file_field3 }}
+
+    <span class="attachment-file-name" hidden></span>
+</div>

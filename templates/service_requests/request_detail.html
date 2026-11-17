@@ -1,209 +1,362 @@
 {% extends "base.html" %}
 
-
 {% block title %}Заявка №{{ request_obj.pk }}{% endblock %}
 
-
 {% block content %}
-    <h1>Заявка №{{ request_obj.pk }}</h1>
-
-
-    <div class="card">
-        <p><strong>Автор:</strong> {{ request_obj.author }}</p>
-        <p><strong>Комната:</strong> {{ request_obj.author.resident.room_number }}</p>
-        <p><strong>Категория:</strong> {{ request_obj.category.name }}</p>
-        <p><strong>Дата создания:</strong> {{ request_obj.date|date:"d.m.Y H:i" }}</p>
-
-        <p>
-            <strong>Статус:</strong>
-            <span class="status status-{{ request_obj.status|lower|cut:" " }}">
-                {{ request_obj.get_status_display }}
-            </span>
-        </p>
-
-        <p>
-            <strong>Специалист:</strong>
-            {% if request_obj.specialist %}
-                {{ request_obj.specialist.get_full_name|default:request_obj.specialist.username }}
-            {% else %}
-                Не назначен
-            {% endif %}
-        </p>
-
-        <p><strong>Описание:</strong> {{ request_obj.description }}</p>
-
-        {% if attachments %}
-            <ul>
-                {% for attachment in attachments %}
-                    <li>
-                        {% if attachment.file.url|lower|slice:"-4:" == ".jpg" or attachment.file.url|lower|slice:"-4:" == ".png" %}
-                            <img
-                                src="{{ attachment.file.url }}"
-                                alt="Вложение"
-                                style="max-width: 300px;"
-                            >
-                        {% endif %}
-
-                        <a href="{{ attachment.file.url }}" target="_blank">
-                            {{ attachment.file.name }}
-                        </a>
-                    </li>
-                {% endfor %}
-            </ul>
-        {% endif %}
-        {% if can_edit %}
-        <p>
-            {% if request_obj.status == "New" %}
-                <a href="{% url 'requests:request-update' request_obj.pk %}">Изменить заявку</a>
-            {% endif %}
-            </span>
-            <a href="{% url 'requests:request-delete' request_obj.pk %}">Удалить заявку</a>
-        </p>
-        {% endif %}
+    <div class="page-head">
+        <div>
+            <h1 class="page-title">Заявка №{{ request_obj.pk }}</h1>
+            <p class="page-subtitle">
+                Создана {{ request_obj.date|date:"d.m.Y H:i" }}
+            </p>
+        </div>
     </div>
 
-    {% if can_take %}
-        <div class="card">
-            <form method="post" action="{% url 'requests:take' request_obj.pk %}">
-                {% csrf_token %}
-                <button type="submit">Взять в работу</button>
-            </form>
+    <article class="card request-details">
+        <div class="request-details-heading">
+            <h2 class="request-details-title">Информация о заявке</h2>
+            <p class="request-details-subtitle">
+                Данные заявителя и назначенного специалиста.
+            </p>
         </div>
-    {% endif %}
 
-    {% if can_change_status %}
-        <div class="card">
-            <form method="post" action="{% url 'requests:update_status' request_obj.pk %}">
-                {% csrf_token %}
-                <button type="submit">Завершить выполнение</button>
-            </form>
-        </div>
-    {% endif %}
+        <dl class="request-data">
+            <div class="request-data-row">
+                <dt>Категория</dt>
+                <dd>
+                    {{ request_obj.category.get_name_display }}
+                </dd>
+            </div>
 
+            {% if user.role != "Resident" %}
+                <div class="request-data-row">
+                    <dt>Автор заявки</dt>
+                    {% if user.role == "Administrator" %}
+                        <a href="{% url 'users:user_detail' request_obj.author.pk %}">
+                            <dd>
+                                {{ request_obj.author.last_name }}
+                                {{ request_obj.author.first_name }}
+                                {{ request_obj.author.patronymic }}
+                            </dd>
+                        </a>
+                    {% else %}
+                        <dd>
+                            {{ request_obj.author.last_name }}
+                            {{ request_obj.author.first_name }}
+                            {{ request_obj.author.patronymic }}
+                        </dd>
+                    {% endif %}
+                </div>
+            {% endif %}
 
-    {% if can_comment %}
-        <div class="card">
-            <h2>Комментарии</h2>
+            {% if can_change_status and request_obj.author.phone %}
+                <div class="request-data-row">
+                    <dt>Телефон автора</dt>
+                    <dd>
+                        <a href="tel:{{ request_obj.author.phone }}">
+                            {{ request_obj.author.phone }}
+                        </a>
+                    </dd>
+                </div>
+            {% endif %}
 
-            {% for comment in comments %}
-                {% if not comment.parent %}
-                    <div class="comment">
-                        <p>
-                            <strong>{{ comment.author.last_name }} {{ comment.author.first_name }}</strong>
-                            <span class="muted">
-                                {{ comment.created_at|date:"d.m.Y H:i" }}
-                            </span>
-                        </p>
+            {% if request_obj.author.resident %}
+                <div class="request-data-row">
+                    <dt>Комната</dt>
+                    <dd>
+                        {{ request_obj.author.resident.room_number|default:"Не указана" }}
+                    </dd>
+                </div>
+            {% endif %}
 
-                        <p>{{ comment.text }}</p>
+            <div class="request-data-row">
+                <dt>Специалист</dt>
+                <dd>
+                    {% if request_obj.specialist %}
+                        {{ request_obj.specialist.last_name }}
+                        {{ request_obj.specialist.first_name }}
+                        {{ request_obj.specialist.patronymic }}
+                    {% else %}
+                        <span class="request-unassigned">
+                            Пока не назначен
+                        </span>
+                    {% endif %}
+                </dd>
+            </div>
 
-                        {% if comment.attachments.all %}
-                            <div class="attachments">
-                                {% for attachment in comment.attachments.all %}
-                                    {% if attachment.file.url|lower|slice:"-4:" == ".jpg" or attachment.file.url|lower|slice:"-4:" == ".png" %}
-                                    <img
-                                        src="{{ attachment.file.url }}"
-                                        alt="Вложение"
-                                        style="max-width: 300px;"
-                                    >
-                                    {% endif %}
-                                    <p>
-                                        <a href="{{ attachment.file.url }}" target="_blank">
-                                            {{ attachment.file.name }}
-                                        </a>
-                                    </p>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
+        </dl>
 
-                        {% if comment.author == user %}
-                            <p class="comment-actions">
-                                <a href="{% url 'requests:comment-update' request_obj.pk comment.pk %}">
-                                    Изменить
-                                </a>
+        <section class="problem-details">
+            <h2 class="problem-details-title">Описание проблемы</h2>
 
-                                <a href="{% url 'requests:comment-delete' request_obj.pk comment.pk %}">
-                                    Удалить
-                                </a>
-                            </p>
-                        {% endif %}
+            <div class="problem-details-text">{{ request_obj.description|linebreaksbr }}</div>
+        </section>
 
-                        
-                        <details>
-                            <summary>Ответить</summary>
-
-                            <form
-                                method="post"
-                                enctype="multipart/form-data"
-                                action="{% url 'requests:add_comment' request_obj.pk %}"
-                            >
-                                {% csrf_token %}
-                                <input type="hidden" name="parent_id" value="{{ comment.pk }}">
-                                {{ comment_form.as_p }}
-                                <button type="submit">Отправить ответ</button>
-                            </form>
-                        </details>
-
-
-                        {% for reply in comment.replies.all %}
-                            <div class="reply">
-                                <p>
-                                    <strong>{{ reply.author.username }}</strong>
-                                    <span class="muted">
-                                        {{ reply.created_at|date:"d.m.Y H:i" }}
-                                    </span>
-                                </p>
-
-                                <p>{{ reply.text }}</p>
-
-                                {% if reply.attachments.all %}
-                                    <div class="attachments">
-                                        {% for attachment in reply.attachments.all %}
-                                            <p>
-                                                <a href="{{ attachment.file.url }}" target="_blank">
-                                                    {{ attachment.file.name }}
-                                                </a>
-                                            </p>
-                                        {% endfor %}
-                                    </div>
-                                {% endif %}
-
-                                {% if reply.author == user %}
-                                    <p class="comment-actions">
-                                        <a href="{% url 'requests:comment-update' request_obj.pk reply.pk %}">
-                                            Изменить
-                                        </a>
-
-                                        <a href="{% url 'requests:comment-delete' request_obj.pk reply.pk %}">
-                                            Удалить
-                                        </a>
-                                    </p>
-                                {% endif %}
-                            </div>
-                        {% endfor %}
-                    </div>
+        <div class="request-details-actions">
+            {% if can_edit %}
+                {% if request_obj.status == "New" %}
+                    <a class="btn btn-outline"
+                    href="{% url 'requests:request-update' request_obj.pk %}">
+                        Редактировать
+                    </a>
                 {% endif %}
-            {% endfor %}
+
+                <a class="btn btn-danger"
+                href="{% url 'requests:request-delete' request_obj.pk %}">
+                    Удалить
+                </a>
+            {% endif %}
+
+            {% if can_take and request_obj.status == "New" %}
+                <form method="post"
+                    action="{% url 'requests:take' request_obj.pk %}">
+                    {% csrf_token %}
+
+                    <button class="btn" type="submit">
+                        Взять в работу
+                    </button>
+                </form>
+            {% endif %}
+
+            {% if can_change_status %}
+                <form method="post"
+                    action="{% url 'requests:update_status' request_obj.pk %}">
+                    {% csrf_token %}
+
+                    <button class="btn" type="submit">
+                        {% if request_obj.status == "New" %}
+                            Начать работу
+                        {% else %}
+                            Завершить выполнение
+                        {% endif %}
+                    </button>
+                </form>
+            {% endif %}
         </div>
+    </article>
+
+    {% if attachments %}
+        <section class="card">
+            <h2 class="section-title" style="font-size: 20px;">
+                Вложения заявки
+            </h2>
+
+            {% for attachment in attachments %}
+                <div class="attachment">
+                    {% if attachment.is_image %}
+                        <img class="attachment-preview"
+                            src="{{ attachment.file.url }}"
+                            alt="Вложение">
+                    {% elif attachment.is_video %}
+                        <video class="attachment-preview"
+                            controls>
+                            <source src="{{ attachment.file.url }}">
+                            Ваш браузер не поддерживает видео.
+                        </video>
+                    {% else %}
+                        <span class="attachment-icon">FILE</span>
+                    {% endif %}
+
+                    <a class="attachment-name"
+                    href="{{ attachment.file.url }}"
+                    target="_blank">
+                        {{ attachment.file.name }}
+                    </a>
+                </div>
+            {% endfor %}
+        </section>
     {% endif %}
 
     {% if can_comment %}
-        <div class="card">
-            <h3>Добавить комментарий</h3>
+        {% if comments %}
+            <section class="card">
+                <h2 class="section-title" style="font-size: 20px;">
+                    Комментарии
+                </h2>
 
-            <form
-                method="post"
-                enctype="multipart/form-data"
-                action="{% url 'requests:add_comment' request_obj.pk %}"
-            >
+                {% for comment in comments %}
+                    {% if not comment.parent %}
+                        <div class="comment">
+                            <div class="comment-head">
+                                <div class="comment-author">
+                                    <span class="comment-avatar">
+                                        {{ comment.author.first_name|slice:":1"|default:comment.author.username|slice:":1"|upper }}
+                                    </span>
+
+                                    <span class="comment-name">
+                                        {{ comment.author.get_full_name|default:comment.author.username }}
+                                    </span>
+                                </div>
+
+                                <time class="comment-date"
+                                    datetime="{{ comment.created_at|date:'c' }}">
+                                    {{ comment.created_at|date:"d.m.Y H:i" }}
+                                </time>
+                            </div>
+
+                            <p class="comment-text">
+                                {{ comment.text }}
+                            </p>
+
+                            {% for attachment in comment.attachments.all %}
+                                <div class="attachment">
+                                    {% if attachment.is_image %}
+                                        <img class="attachment-preview"
+                                            src="{{ attachment.file.url }}"
+                                            alt="Вложение">
+                                    {% elif attachment.is_video %}
+                                        <video class="attachment-preview"
+                                            controls>
+                                            <source src="{{ attachment.file.url }}">
+                                            Ваш браузер не поддерживает видео.
+                                        </video>
+                                    {% else %}
+                                        <span class="attachment-icon">FILE</span>
+                                    {% endif %}
+
+                                    <a class="attachment-name"
+                                    href="{{ attachment.file.url }}"
+                                    target="_blank">
+                                        {{ attachment.file.name }}
+                                    </a>
+                                </div>
+                            {% endfor %}
+
+                            {% if comment.author == user %}
+                                <div class="comment-actions">
+                                    <a class="btn btn-outline"
+                                    href="{% url 'requests:comment-update' request_obj.pk comment.pk %}">
+                                        Изменить
+                                    </a>
+
+                                    <a class="btn btn-danger"
+                                    href="{% url 'requests:comment-delete' request_obj.pk comment.pk %}">
+                                        Удалить
+                                    </a>
+                                </div>
+                            {% endif %}
+
+                            <details>
+                                <summary>Ответить</summary>
+
+                                <form method="post"
+                                    enctype="multipart/form-data"
+                                    action="{% url 'requests:add_comment' request_obj.pk %}"
+                                    class="form-grid">
+
+                                    {% csrf_token %}
+                                    <input type="hidden"
+                                        name="parent_id"
+                                        value="{{ comment.pk }}">
+
+                                    <div class="form-row">
+                                        <label for="{{ comment_form.text.id_for_label }}">
+                                            Ответ
+                                        </label>
+
+                                        {{ comment_form.text }}
+                                    </div>
+
+                                    {% include "includes/attachment_fields.html" with file_field=comment_form.file1 file_field2=comment_form.file2 file_field3=comment_form.file3 %}
+
+                                    <div class="form-actions">
+                                        <button class="btn" type="submit">
+                                            Отправить ответ
+                                        </button>
+                                    </div>
+                                </form>
+                            </details>
+
+                            {% for reply in comment.replies.all %}
+                                <div class="reply">
+                                    <div class="comment-head">
+                                        <span class="comment-author">
+                                            {{ reply.author.get_full_name|default:reply.author.username }}
+                                        </span>
+
+                                        <span class="comment-date">
+                                            {{ reply.created_at|date:"d.m.Y H:i" }}
+                                        </span>
+                                    </div>
+
+                                    <p class="comment-text">
+                                        {{ reply.text }}
+                                    </p>
+
+                                    {% for attachment in reply.attachments.all %}
+                                        <div class="attachment">
+                                            {% if attachment.is_image %}
+                                                <img class="attachment-preview"
+                                                    src="{{ attachment.file.url }}"
+                                                    alt="Вложение">
+                                            {% elif attachment.is_video %}
+                                                <video class="attachment-preview"
+                                                    controls>
+                                                    <source src="{{ attachment.file.url }}">
+                                                    Ваш браузер не поддерживает видео.
+                                                </video>
+                                            {% else %}
+                                                <span class="attachment-icon">FILE</span>
+                                            {% endif %}
+
+                                            <a class="attachment-name"
+                                            href="{{ attachment.file.url }}"
+                                            target="_blank">
+                                                {{ attachment.file.name }}
+                                            </a>
+                                        </div>
+                                    {% endfor %}
+
+                                    {% if reply.author == user %}
+                                        <div class="comment-actions">
+                                            <a class="btn btn-outline"
+                                            href="{% url 'requests:comment-update' request_obj.pk reply.pk %}">
+                                                Изменить
+                                            </a>
+
+                                            <a class="btn btn-danger"
+                                            href="{% url 'requests:comment-delete' request_obj.pk reply.pk %}">
+                                                Удалить
+                                            </a>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </section>
+        {% endif %}
+
+        <section class="card">
+            <h2 class="section-title" style="font-size: 20px;">
+                Добавить комментарий
+            </h2>
+
+            <form method="post"
+                  enctype="multipart/form-data"
+                  action="{% url 'requests:add_comment' request_obj.pk %}"
+                  class="form-grid">
+
                 {% csrf_token %}
-                {{ comment_form.as_p }}
-                <button type="submit">Оставить комментарий</button>
+
+                <div class="form-row">
+
+                    {{ comment_form.text }}
+                </div>
+
+                {% include "includes/attachment_fields.html" with file_field=comment_form.file1 file_field2=comment_form.file2 file_field3=comment_form.file3 %}
+
+                <div class="form-actions">
+                    <button class="btn" type="submit">
+                        Оставить комментарий
+                    </button>
+                </div>
             </form>
-        </div>
+        </section>
     {% endif %}
 
-    <p>
-        <a href="{% url 'requests:index' %}">Назад к списку</a>
-    </p>
+    <a class="btn btn-outline" href="{% url 'requests:index' %}">
+        Назад к списку
+    </a>
 {% endblock %}

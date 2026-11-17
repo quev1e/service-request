@@ -2,7 +2,7 @@ from django.urls import reverse_lazy
 from django.views.generic import FormView, ListView, DetailView, UpdateView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from .forms import ResidentCreateForm, SpecialistCreateForm, UserCreateForm, UserUpdateForm, SpecialistUpdateForm, ResidentUpdateForm
-from .models import User
+from .models import User, ResidentProfile, SpecialistProfile
 
 class UserMixin:
     model = User
@@ -15,6 +15,25 @@ class UserDetailView(UserMixin, LoginRequiredMixin, UserPassesTestMixin, DetailV
 
     template_name = "users/user_detail.html"
     context_object_name = 'user'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.object
+
+        if user.role == "Specialist":
+            user_requests = user.taken_requests.all()
+            context["requests_title"] = "Назначенные заявки"
+        else:
+            user_requests = user.requests.all()
+            context["requests_title"] = "Созданные заявки"
+
+        context["user_requests"] = (
+            user_requests
+            .select_related("category", "author", "specialist")
+            .order_by("-date")
+        )
+
+        return context
 
 
 class UserListView(UserMixin, LoginRequiredMixin, UserPassesTestMixin, ListView):
@@ -42,9 +61,9 @@ class UserUpdateView(UserMixin, LoginRequiredMixin, UserPassesTestMixin, UpdateV
         user = self.get_object()
 
         if user.role == "Resident":
-            kwargs["profile"] = user.resident
+            kwargs["profile"] = ResidentProfile.objects.filter(user=user).first()
         elif user.role == "Specialist":
-            kwargs["profile"] = user.specialist
+            kwargs["profile"] = SpecialistProfile.objects.filter(user=user).first()
 
         return kwargs
 
