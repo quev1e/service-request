@@ -6,78 +6,55 @@ from django.views.generic import CreateView, DetailView, UpdateView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import Case, When, Value, IntegerField, Prefetch
 from .models import Request, Comment, Attachment
-from .forms import RequestForm, CommentForm
+from .forms import CommentForm
 from django.db import transaction
+from .mixins import RequestMixin, CommentMixin
+from .utils import delete_attachments
 
 
-@login_required
-def index(request):
-
-    templates = {
-        'Resident': 'home/resident.html',
-        'Specialist': 'home/specialist.html',
-        'Administrator': 'home/administrator.html'
-    }
-
-    role = request.user.role
-    template_name = templates.get(request.user.role)
-
-    if not template_name:
-        raise PermissionDenied("Для пользователя не определена роль.")
-
-    if role == 'Administrator':
-        context = {
-            'requests': Request.objects.select_related(
-                'author',
-                'category',
-                'specialist'
-            ).order_by('-date'),
-            'user': request.user
-        }
-
-    elif role == 'Resident':
-        requests = Request.objects.filter(
-            author=request.user
-        ).select_related(
-            'author',
-            'category',
-            'specialist'
-        ).order_by('-date')
-
-        context = {
-            'requests': requests,
-            'user': request.user
-        }
-
-    elif role == 'Specialist':
-        specialist_categories = request.user.specialist.categories.all()
-        requests = Request.objects.filter(
-            category__in=specialist_categories
-        ).select_related(
-            'author',
-            'category',
-            'specialist'
-        ).order_by("-date")
+def get_admin_requests():
+    return Request.objects.select_related(
+        'author',
+        'category',
+        'specialist'
+    ).order_by('-date')
 
 
-        status = request.GET.get("status", "")
-        category_id = request.GET.get("category", "")
-        only_mine = request.GET.get("only_mine", "")
+def get_resident_requests(user):
+    return Request.objects.filter(
+        author=user
+    ).select_related(
+        'author',
+        'category',
+        'specialist'
+    ).order_by('-date')
 
-        if status in ("New", "In progress", "Completed"):
-            requests = requests.filter(status=status)
 
-        if category_id:
-            requests = requests.filter(category_id=category_id)
+def get_specialist_requests(user, status='', category_id='', only_mine=''):
+    specialist_categories = user.specialist.categories.all()
 
-        if only_mine == "1":
-            requests = requests.filter(specialist=request.user)
-        
-        requests = requests.annotate(
+    requests = Request.objects.filter(
+        category__in=specialist_categories
+    ).select_related(
+        'author',
+        'category',
+        'specialist'
+    )
+
+    if status in ("New", "In progress", "Completed"):
+        requests = requests.filter(status=status)
+
+    if category_id:
+        requests = requests.filter(category_id=category_id)
+
+    if only_mine == "1":
+        requests = requests.filter(specialist=user)
+
+    return requests.annotate(
         priority=Case(
             When(
                 status="In progress",
-                specialist=request.user,
+                specialist=user,
                 then=Value(1),
             ),
             When(
@@ -90,26 +67,55 @@ def index(request):
         )
     ).order_by("priority", "status", "-date")
 
-        context = {
-            "requests": requests,
-            "user": request.user,
-            "specialist_categories": specialist_categories,
-            "selected_status": status,
-            "selected_category": category_id,
-            "selected_only_mine": only_mine,
-        }
-    else:
-        return
+
+@login_required
+def index(request):
+
+    templates = {
+        'Resident': 'home/resident.html',
+        'Specialist': 'home/specialist.html',
+        'Administrator': 'home/administrator.html'
+    }
+
+    user = request.user
+    role = user.role
+
+    template_name = templates.get(role)
+
+    if not template_name:
+        raise PermissionDenied("Для пользователя не определена роль.")
+
+    context = {
+        'user': user
+    }
+
+    if role == 'Administrator':
+        context['requests'] = get_admin_requests()
+
+    elif role == 'Resident':
+        context['requests'] = get_resident_requests(user)
+
+    elif role == 'Specialist':
+        status = request.GET.get("status", "")
+        category_id = request.GET.get("category", "")
+        only_mine = request.GET.get("only_mine", "")
+
+        specialist_categories = user.specialist.categories.all()
+
+        context.update({
+            'requests': get_specialist_requests(
+                user,
+                status,
+                category_id,
+                only_mine
+            ),
+            'specialist_categories': specialist_categories,
+            'selected_status': status,
+            'selected_category': category_id,
+            'selected_only_mine': only_mine,
+        })
 
     return render(request, template_name, context)
-
-
-class RequestMixin:
-    model = Request
-    template_name = 'service_requests/request_form.html'
-    success_url = reverse_lazy('requests:index')
-    form_class = RequestForm
-
 
 class RequestCreateView(RequestMixin, LoginRequiredMixin, UserPassesTestMixin, CreateView):
 
@@ -128,20 +134,26 @@ class RequestUpdateView(RequestMixin, LoginRequiredMixin, UserPassesTestMixin, U
         user = self.request.user
 
         return request.author == user and request.status == 'New'
-    
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        context["attachments"] = self.object.attachments.filter(
+            comment__isnull=True
+        )
+
+        return context
+
     def form_valid(self, form):
         response = super().form_valid(form)
 
-        for attachment in self.object.attachments.all():
-            if self.request.POST.get(f"delete_attachment_{attachment.pk}") == "1":
-                attachment.file.delete(save=False)
-                attachment.delete()
+        delete_attachments(self.object.attachments.filter(comment__isnull=True), self.request.POST)
 
         return response
 
 
 class RequestDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
-    
+
     model = Request
     template_name = 'service_requests/request_confirm_delete.html'
     success_url = reverse_lazy('requests:index')
@@ -152,7 +164,7 @@ class RequestDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
 
 
 class RequestDetailView(LoginRequiredMixin, DetailView):
-    
+
     model = Request
     template_name = 'service_requests/request_detail.html'
 
@@ -267,7 +279,7 @@ class RequestDetailView(LoginRequiredMixin, DetailView):
 
 @login_required
 def take_request(request, pk):
-    
+
     if request.method != 'POST':
         return redirect('requests:index')
 
@@ -332,37 +344,8 @@ def change_status(request, pk):
     return redirect("requests:detail", pk=obj.pk)
 
 
-class CommentMixin:
-    model = Comment
-
-    def dispatch(self, request, *args, **kwargs):
-        self.request_obj = get_object_or_404(
-            Request,
-            pk=kwargs["request_pk"],
-        )
-
-        return super().dispatch(request, *args, **kwargs)
-
-    def get_success_url(self):
-        return reverse(
-            "requests:detail",
-            kwargs={"pk": self.request_obj.pk},
-        )
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["request_obj"] = self.request_obj
-        return context
-
-    def get_queryset(self):
-        return Comment.objects.filter(
-            request=self.request_obj
-        )
-
-
-
 class CommentCreateView(LoginRequiredMixin, CommentMixin, UserPassesTestMixin, CreateView):
-    
+
     form_class = CommentForm
     template_name = 'service_requests/comment_form.html'
 
@@ -385,35 +368,32 @@ class CommentCreateView(LoginRequiredMixin, CommentMixin, UserPassesTestMixin, C
             Comment,
             pk=parent_id,
             request=self.request_obj,
+            parent__isnull=True,
         )
 
 class CommentUpdateView(LoginRequiredMixin, CommentMixin, UserPassesTestMixin, UpdateView):
-    
+
     form_class = CommentForm
     template_name = 'service_requests/comment_form.html'
-    
+
     def test_func(self):
         comment = self.get_object()
         user = self.request.user
 
         return comment.author == user
-    
+
     def form_valid(self, form):
         response = super().form_valid(form)
 
-        for attachment in self.object.attachments.all():
-            if self.request.POST.get(f"delete_attachment_{attachment.pk}") == "1":
-                attachment.file.delete(save=False)
-                attachment.delete()
+        delete_attachments(self.object.attachments.all(), self.request.POST)
 
         return response
 
 
 class CommentDeleteView(LoginRequiredMixin, CommentMixin, UserPassesTestMixin, DeleteView):
-    
+
     template_name = 'service_requests/comment_delete_confirm.html'
 
     def test_func(self):
         comment = self.get_object()
         return comment.author == self.request.user
-

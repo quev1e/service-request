@@ -62,11 +62,11 @@
 
         {% include "includes/attachment_fields.html" with file_field=form.file1 file_field2=form.file2 file_field3=form.file3 %}
 
-        {% if object.attachments.exists %}
+        {% if attachments %}
             <div class="existing-attachments">
                 <h3>Уже прикреплённые файлы</h3>
 
-                {% for attachment in object.attachments.all %}
+                {% for attachment in attachments %}
                     <div class="existing-attachment">
                         {% if attachment.is_image %}
                             <img class="existing-attachment-preview"
