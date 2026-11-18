@@ -28,16 +28,24 @@
             </a>
 
             <nav class="nav">
-                {% if user.is_authenticated and user.role == "Administrator" %}
+                {% if user.is_authenticated %}
+                    {% if user.role == "Administrator" %}
                         <a class="nav-link"
-                           href="{% url 'requests:index' %}">
+                        href="{% url 'requests:index' %}">
                             Заявки
                         </a>
 
                         <a class="nav-link"
-                           href="{% url 'users:user_list' %}">
+                        href="{% url 'users:user_list' %}">
                             Пользователи
                         </a>
+
+                    {% elif user.role == "Resident" %}
+                        <a class="nav-link"
+                        href="{% url 'requests:create' %}">
+                            Создать заявку
+                        </a>
+                    {% endif %}
                 {% endif %}
             </nav>
 

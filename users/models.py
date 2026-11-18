@@ -13,7 +13,7 @@ class User(AbstractUser):
 
     role = models.CharField(
         choices=ROLES,
-        default='Resident',
+        default='Administrator',
         verbose_name='Роль'
     )
 

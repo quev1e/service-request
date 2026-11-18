@@ -10,6 +10,23 @@
                 Управление аккаунтами жителей, специалистов и администраторов.
             </p>
         </div>
+
+        <div class="user-create-actions">
+            <a class="btn btn-outline"
+               href="{% url 'users:create_resident' %}">
+                Создать жителя
+            </a>
+
+            <a class="btn btn-outline"
+               href="{% url 'users:create_specialist' %}">
+                Создать специалиста
+            </a>
+
+            <a class="btn"
+               href="{% url 'users:create_admin' %}">
+                Создать администратора
+            </a>
+        </div>
     </div>
 
     <div class="users-grid">

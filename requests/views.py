@@ -4,13 +4,10 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.views.generic import CreateView, DetailView, UpdateView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.db.models import Case, When, Value, IntegerField
-from .models import Request, Comment
+from django.db.models import Case, When, Value, IntegerField, Prefetch
+from .models import Request, Comment, Attachment
 from .forms import RequestForm, CommentForm
 from django.db import transaction
-
-
-
 
 
 @login_required
@@ -30,12 +27,22 @@ def index(request):
 
     if role == 'Administrator':
         context = {
-            'requests': Request.objects.all().order_by('-date'),
+            'requests': Request.objects.select_related(
+                'author',
+                'category',
+                'specialist'
+            ).order_by('-date'),
             'user': request.user
         }
 
     elif role == 'Resident':
-        requests = Request.objects.filter(author=request.user).order_by('-date')
+        requests = Request.objects.filter(
+            author=request.user
+        ).select_related(
+            'author',
+            'category',
+            'specialist'
+        ).order_by('-date')
 
         context = {
             'requests': requests,
@@ -44,7 +51,13 @@ def index(request):
 
     elif role == 'Specialist':
         specialist_categories = request.user.specialist.categories.all()
-        requests = Request.objects.filter(category__in=specialist_categories).order_by("-date")
+        requests = Request.objects.filter(
+            category__in=specialist_categories
+        ).select_related(
+            'author',
+            'category',
+            'specialist'
+        ).order_by("-date")
 
 
         status = request.GET.get("status", "")
@@ -151,43 +164,100 @@ class RequestDetailView(LoginRequiredMixin, DetailView):
         if user.role == 'Resident' and user != obj.author:
             raise PermissionDenied("Нельзя просмотреть чужую заявку.")
 
-        if user.role == 'Specialist' and obj.category not in user.specialist.categories.all():
-            raise PermissionDenied("Нельзя просмотреть заявки из других категорий.")
+        if user.role == 'Specialist':
+            has_access = user.specialist.categories.filter(
+                pk=obj.category_id
+            ).exists()
+
+            if not has_access:
+                raise PermissionDenied(
+                    "Нельзя просмотреть заявки из других категорий."
+                )
 
         return obj
 
+    def get_queryset(self):
+        reply_queryset = (
+            Comment.objects
+            .select_related("author")
+            .prefetch_related("attachments")
+        )
+
+        comment_queryset = (
+            Comment.objects
+            .select_related("author")
+            .prefetch_related(
+                "attachments",
+                Prefetch(
+                    "replies",
+                    queryset=reply_queryset
+                )
+            )
+        )
+
+        return (
+            Request.objects
+            .select_related(
+                "author",
+                "author__resident",
+                "category",
+                "specialist"
+            )
+            .prefetch_related(
+                Prefetch(
+                    "attachments",
+                    queryset=Attachment.objects.filter(comment=None),
+                    to_attr="request_attachments"
+                ),
+                Prefetch(
+                    "comments",
+                    queryset=comment_queryset,
+                    to_attr="prefetched_comments"
+                )
+            )
+        )
+
     def get_context_data(self, **kwargs):
         user = self.request.user
-        request_obj = self.get_object()
+        request_obj = self.object
 
         can_take = False
         can_change_status = False
         can_edit = False
-        
+
         if request_obj.author == user:
             can_edit = True
 
-        attachments = request_obj.attachments.filter(comment=None)
+        attachments = request_obj.request_attachments
+
         if user.role == 'Specialist':
             if not request_obj.specialist:
                 can_take = True
-            if request_obj.specialist == user and request_obj.status != 'Completed':
+
+            if (
+                request_obj.specialist == user
+                and request_obj.status != 'Completed'
+            ):
                 can_change_status = True
 
-        can_comment = user in (request_obj.author, request_obj.specialist)
+        can_comment = user in (
+            request_obj.author,
+            request_obj.specialist
+        )
 
         comments = None
         comment_form = None
+
         if can_comment:
-            comments = request_obj.comments.all()
+            comments = request_obj.prefetched_comments
             comment_form = CommentForm()
 
         return {
             "can_edit": can_edit,
-            'can_take': can_take,
-            'can_change_status': can_change_status,
-            'can_comment': can_comment,
-            'request_obj': request_obj,
+            "can_take": can_take,
+            "can_change_status": can_change_status,
+            "can_comment": can_comment,
+            "request_obj": request_obj,
             "attachments": attachments,
             "comments": comments,
             "comment_form": comment_form,
@@ -213,9 +283,11 @@ def take_request(request, pk):
                 pk=pk,
             )
 
-            categories = user.specialist.categories.all()
+            has_category = user.specialist.categories.filter(
+                pk=obj.category_id
+            ).exists()
 
-            if obj.category not in categories:
+            if not has_category:
                 raise PermissionDenied(
                     "Нельзя брать заявки не своей специализации."
                 )
@@ -282,9 +354,14 @@ class CommentMixin:
         context["request_obj"] = self.request_obj
         return context
 
+    def get_queryset(self):
+        return Comment.objects.filter(
+            request=self.request_obj
+        )
 
 
-class CommentCreateView(CommentMixin, LoginRequiredMixin, UserPassesTestMixin, CreateView):
+
+class CommentCreateView(LoginRequiredMixin, CommentMixin, UserPassesTestMixin, CreateView):
     
     form_class = CommentForm
     template_name = 'service_requests/comment_form.html'
@@ -310,7 +387,7 @@ class CommentCreateView(CommentMixin, LoginRequiredMixin, UserPassesTestMixin, C
             request=self.request_obj,
         )
 
-class CommentUpdateView(CommentMixin, LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+class CommentUpdateView(LoginRequiredMixin, CommentMixin, UserPassesTestMixin, UpdateView):
     
     form_class = CommentForm
     template_name = 'service_requests/comment_form.html'
@@ -332,7 +409,7 @@ class CommentUpdateView(CommentMixin, LoginRequiredMixin, UserPassesTestMixin, U
         return response
 
 
-class CommentDeleteView(CommentMixin, LoginRequiredMixin, UserPassesTestMixin, DeleteView):
+class CommentDeleteView(LoginRequiredMixin, CommentMixin, UserPassesTestMixin, DeleteView):
     
     template_name = 'service_requests/comment_delete_confirm.html'
 

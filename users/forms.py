@@ -4,6 +4,7 @@ from requests.models import Category
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from .validators import contract_number_validator, room_number_validator
+from django.db import transaction
 
 
 class UserCreateForm(forms.ModelForm):
@@ -61,6 +62,7 @@ class ResidentCreateForm(UserCreateForm):
         validators=(room_number_validator,)
     )
 
+    @transaction.atomic
     def save(self, commit=True):
         user = super().save(commit=False)
         user.role = "Resident"
@@ -94,6 +96,7 @@ class SpecialistCreateForm(UserCreateForm):
 
         return cleaned_data
 
+    @transaction.atomic
     def save(self, commit=True):
         user = super().save(commit=False)
         user.role = "Specialist"
@@ -141,6 +144,7 @@ class ResidentUpdateForm(UserUpdateForm):
             self.fields["contract_number"].initial = profile.contract_number
             self.fields["room_number"].initial = profile.room_number
 
+    @transaction.atomic
     def save(self, commit=True):
         user = super().save(commit=False)
 
@@ -174,6 +178,7 @@ class SpecialistUpdateForm(UserUpdateForm):
         if profile:
             self.fields["categories"].initial = profile.categories.all()
 
+    @transaction.atomic
     def save(self, commit=True):
         user = super().save(commit=False)
 
@@ -186,3 +191,4 @@ class SpecialistUpdateForm(UserUpdateForm):
             profile.categories.set(self.cleaned_data["categories"])
 
         return user
+    
