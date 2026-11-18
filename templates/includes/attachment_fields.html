@@ -1,16 +1,24 @@
-<div class="form-row attachment-fields">
+<div class="form-row attachment-fields {% if file_field.errors %}has-error{% endif %}">
     <label class="attachment-button"
         for="{{ file_field.id_for_label }}">
-    <span class="attachment-button-icon">📎</span>
-    <span class="attachment-button-text">Прикрепить файл</span>
-</label>
+        <span class="attachment-button-icon">📎</span>
+        <span class="attachment-button-text">Прикрепить файл</span>
+    </label>
 
-{{ file_field }}
+    {{ file_field }}
 
     <span class="attachment-file-name" hidden></span>
+
+    {% if file_field.errors %}
+        <ul class="errorlist">
+            {% for error in file_field.errors %}
+                <li>{{ error }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
 </div>
 
-<div class="form-row attachment-fields hidden">
+<div class="form-row attachment-fields hidden {% if file_field2.errors %}has-error{% endif %}">
     <label class="attachment-button" for="{{ file_field2.id_for_label }}">
         <span class="attachment-button-icon">📎</span>
         <span class="attachment-button-text">Прикрепить второй файл</span>
@@ -19,9 +27,17 @@
     {{ file_field2 }}
 
     <span class="attachment-file-name" hidden></span>
+
+    {% if file_field2.errors %}
+        <ul class="errorlist">
+            {% for error in file_field2.errors %}
+                <li>{{ error }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
 </div>
 
-<div class="form-row attachment-fields hidden">
+<div class="form-row attachment-fields hidden {% if file_field3.errors %}has-error{% endif %}">
     <label class="attachment-button" for="{{ file_field3.id_for_label }}">
         <span class="attachment-button-icon">📎</span>
         <span class="attachment-button-text">Прикрепить третий файл</span>
@@ -30,4 +46,12 @@
     {{ file_field3 }}
 
     <span class="attachment-file-name" hidden></span>
+
+    {% if file_field3.errors %}
+        <ul class="errorlist">
+            {% for error in file_field3.errors %}
+                <li>{{ error }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
 </div>

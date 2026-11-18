@@ -3,6 +3,7 @@ from .models import User, ResidentProfile, SpecialistProfile
 from requests.models import Category
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
+from .validators import contract_number_validator, room_number_validator
 
 
 class UserCreateForm(forms.ModelForm):
@@ -51,11 +52,13 @@ class ResidentCreateForm(UserCreateForm):
 
     contract_number = forms.CharField(
         max_length=13,
-        label='Номер договора'
+        label='Номер договора',
+        validators=(contract_number_validator,)
     )
     room_number = forms.CharField(
         max_length=5,
-        label='Номер комнаты'
+        label='Номер комнаты',
+        validators=(room_number_validator,)
     )
 
     def save(self, commit=True):
@@ -120,10 +123,12 @@ class ResidentUpdateForm(UserUpdateForm):
     contract_number = forms.CharField(
         max_length=13,
         label="Номер договора",
+        validators=(contract_number_validator,)
     )
     room_number = forms.CharField(
         max_length=5,
         label="Номер комнаты",
+        validators=(room_number_validator,)
     )
 
     class Meta(UserUpdateForm.Meta):

@@ -1,7 +1,6 @@
 from string import digits
 import re
 from django.core.exceptions import ValidationError
-from django.core.validators import URLValidator
 
 
 def phone_number_validator(value: str):
