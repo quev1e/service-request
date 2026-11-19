@@ -1,9 +1,17 @@
-from django.db import models
+"""Пользователи и профили"""
 from django.contrib.auth.models import AbstractUser
-from .validators import phone_number_validator, contract_number_validator, room_number_validator
+from django.db import models
+
+from .validators import (
+    contract_number_validator,
+    phone_number_validator,
+    room_number_validator,
+)
 
 
 class User(AbstractUser):
+    """Модель пользователя с поддержкой 
+    ролевого разграничения доступа."""
 
     ROLES = [
         ('Resident', 'Проживающий'),
@@ -56,10 +64,13 @@ class User(AbstractUser):
     )
 
     def __str__(self):
+        """Возвращает имя и фамилию пользователя."""
         return f"{self.last_name} {self.first_name}"
 
 
 class ResidentProfile(models.Model):
+    """Профиль проживающего с информацией 
+    о договоре и комнате."""
 
     user = models.OneToOneField(
         User,
@@ -81,10 +92,13 @@ class ResidentProfile(models.Model):
     )
 
     def __str__(self):
+        """Возвращает имя и фамилию проживающего."""
         return f"Resident {self.user.last_name} {self.user.first_name}"
 
 
 class SpecialistProfile(models.Model):
+    """Профиль специалиста с перечнем 
+    доступных категорий работ."""
 
     user = models.OneToOneField(
         User,
@@ -100,4 +114,5 @@ class SpecialistProfile(models.Model):
     )
 
     def __str__(self):
+        """Возвращает имя и фамилию специалиста."""
         return f"Specialist {self.user.last_name} {self.user.first_name}"

@@ -1,9 +1,12 @@
+"""Тесты приложения requests"""
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
-from .models import Category, Comment, Request
 from users.models import SpecialistProfile
+
+from .models import Category, Comment, Request
 
 User = get_user_model()
 
@@ -13,6 +16,8 @@ class RequestWorkflowTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
+        """Создаёт тестовые категории, пользователей, 
+        профили специалистов и заявки."""
         cls.plumbing = Category.objects.create(name="Plumbing")
         cls.electrical = Category.objects.create(name="Electrical")
 
@@ -55,6 +60,8 @@ class RequestWorkflowTests(TestCase):
 
     @staticmethod
     def create_user(username, role, email):
+        """Создаёт тестового пользователя с указанными 
+        учётными данными и ролью."""
         return User.objects.create_user(
             username=username,
             password="StrongTestPassword123!",
@@ -66,6 +73,7 @@ class RequestWorkflowTests(TestCase):
         )
 
     def login(self, user):
+        """Выполняет авторизацию тестового пользователя."""
         self.client.force_login(user)
 
     # Главная страница и списки заявок
@@ -363,7 +371,9 @@ class RequestWorkflowTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 404)
-        self.assertFalse(Comment.objects.filter(text="Попытка ответа").exists())
+        self.assertFalse(
+            Comment.objects.filter(text="Попытка ответа").exists()
+        )
 
     def test_comment_author_can_edit_own_comment(self):
         comment = Comment.objects.create(

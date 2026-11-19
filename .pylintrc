@@ -1,0 +1,22 @@
+[MASTER]
+load-plugins=pylint_django
+ignore=migrations
+
+[MESSAGES CONTROL]
+disable=
+    missing-module-docstring,
+    missing-class-docstring,
+    missing-function-docstring,
+    no-member,
+    django-not-configured,
+    too-few-public-methods,
+    too-many-public-methods
+
+
+[FORMAT]
+max-line-length=79
+
+[DESIGN]
+max-args=7
+max-attributes=10
+max-locals=15

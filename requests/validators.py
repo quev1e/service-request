@@ -1,3 +1,4 @@
+"""Валидаторы"""
 from django.core.exceptions import ValidationError
 from django.core.validators import FileExtensionValidator
 
@@ -7,6 +8,8 @@ ALLOWED_EXTENSIONS = [
 ]
 
 def validate_file_size(file):
+    """Проверяет, что размер загружаемого файла 
+    не превышает установленный лимит."""
     max_size_mb = 10
 
     if file.size > max_size_mb * 1024 * 1024:

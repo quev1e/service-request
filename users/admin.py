@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import User, ResidentProfile, SpecialistProfile
+
+from .models import ResidentProfile, SpecialistProfile, User
 
 
 @admin.register(User)

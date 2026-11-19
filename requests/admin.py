@@ -1,7 +1,6 @@
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin
-from .models import Request, Category, Attachment
 
+from .models import Attachment, Category, Request
 
 admin.site.register(Request)
 admin.site.register(Category)

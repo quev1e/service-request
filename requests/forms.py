@@ -1,12 +1,14 @@
-
+"""Формы и их назначение"""
 from django import forms
-from .models import Request, Attachment, Comment
-from .validators import attachment_validators
 from django.db import transaction
+
+from .models import Attachment, Comment, Request
+from .validators import attachment_validators
 
 
 class AttachmentModelForm(forms.ModelForm):
-    """Общая форма для работы с вложениями."""
+    """Базовая форма для загрузки 
+    вложений к заявкам и комментариям."""
 
     file1 = forms.FileField(
         required=False,
@@ -30,13 +32,16 @@ class AttachmentModelForm(forms.ModelForm):
     file_fields = ("file1", "file2", "file3")
 
     def __init__(self, *args, **kwargs):
+        """Инициализирует форму и устанавливает 
+        CSS-класс для полей загрузки файлов."""
         super().__init__(*args, **kwargs)
 
         for field_name in self.file_fields:
             self.fields[field_name].widget.attrs["class"] = "file-input"
 
     def save_attachments(self, request_obj, comment_obj=None):
-        """Сохраняет загруженные файлы для заявки или комментария."""
+        """Сохраняет загруженные файлы и связывает 
+        их с заявкой и комментарием."""
 
         for field_name in self.file_fields:
             file = self.cleaned_data.get(field_name)
@@ -50,13 +55,16 @@ class AttachmentModelForm(forms.ModelForm):
 
 
 class RequestForm(AttachmentModelForm):
+    """Форма создания и редактирования заявки."""
 
     class Meta:
         model = Request
         fields = ['category', 'description']
-        
+
     @transaction.atomic
     def save(self, commit=True):
+        """Сохраняет заявку и связанные с 
+        ней вложения в рамках транзакции."""
         request_obj = super().save(commit=False)
 
         if commit:
@@ -67,6 +75,8 @@ class RequestForm(AttachmentModelForm):
 
 
 class CommentForm(AttachmentModelForm):
+    """Форма создания и редактирования 
+    комментария к заявке."""
 
     class Meta:
         model = Comment
@@ -83,6 +93,8 @@ class CommentForm(AttachmentModelForm):
 
     @transaction.atomic
     def save(self, commit=True):
+        """Сохраняет комментарий и связанные с 
+        ним вложения в рамках транзакции."""
         comment_obj = super().save(commit=False)
 
         if commit:

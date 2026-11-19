@@ -1,18 +1,24 @@
-from django.shortcuts import render, get_object_or_404, redirect
-from django.urls import reverse, reverse_lazy
+"""Представления, обработчики, вспомогательные функции"""
+
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import PermissionDenied
-from django.views.generic import CreateView, DetailView, UpdateView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.db.models import Case, When, Value, IntegerField, Prefetch
-from .models import Request, Comment, Attachment
-from .forms import CommentForm
+from django.core.exceptions import PermissionDenied
 from django.db import transaction
-from .mixins import RequestMixin, CommentMixin
+from django.db.models import Case, IntegerField, Prefetch, Value, When
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse_lazy
+from django.views.generic import CreateView, DeleteView, DetailView, UpdateView
+
+from .forms import CommentForm
+from .mixins import CommentMixin, RequestMixin
+from .models import Attachment, Comment, Request
 from .utils import delete_attachments
 
 
 def get_admin_requests():
+    """Возвращает все заявки с загруженными 
+    связанными объектами, отсортированные 
+    по дате создания."""
     return Request.objects.select_related(
         'author',
         'category',
@@ -21,6 +27,8 @@ def get_admin_requests():
 
 
 def get_resident_requests(user):
+    """Возвращает заявки указанного жильца, 
+    отсортированные по дате создания."""
     return Request.objects.filter(
         author=user
     ).select_related(
@@ -31,6 +39,9 @@ def get_resident_requests(user):
 
 
 def get_specialist_requests(user, status='', category_id='', only_mine=''):
+    """Возвращает заявки по категориям 
+    специалиста с учётом фильтров и 
+    приоритета обработки."""
     specialist_categories = user.specialist.categories.all()
 
     requests = Request.objects.filter(
@@ -70,6 +81,8 @@ def get_specialist_requests(user, status='', category_id='', only_mine=''):
 
 @login_required
 def index(request):
+    """Отображает главную страницу 
+    с заявками в зависимости от роли пользователя."""
 
     templates = {
         'Resident': 'home/resident.html',
@@ -117,25 +130,44 @@ def index(request):
 
     return render(request, template_name, context)
 
-class RequestCreateView(RequestMixin, LoginRequiredMixin, UserPassesTestMixin, CreateView):
+class RequestCreateView(
+    RequestMixin,
+    LoginRequiredMixin,
+    UserPassesTestMixin,
+    CreateView
+    ):
+    """Представление для создания заявок жильцами."""
 
     def test_func(self):
+        """Разрешает создание заявок только 
+        пользователям с ролью жильца."""
         return self.request.user.role == 'Resident'
 
     def form_valid(self, form):
+        """Назначает текущего пользователя 
+        автором заявки перед сохранением."""
         form.instance.author = self.request.user
         return super().form_valid(form)
 
 
-class RequestUpdateView(RequestMixin, LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+class RequestUpdateView(
+    RequestMixin,
+    LoginRequiredMixin,
+    UserPassesTestMixin,
+    UpdateView
+    ):
+    """Представление для редактирования заявок жильцами."""
 
     def test_func(self):
+        """Проверяет, что пользователь является 
+        автором новой заявки."""
         request = self.get_object()
         user = self.request.user
 
         return request.author == user and request.status == 'New'
 
     def get_context_data(self, **kwargs):
+        """Добавляет вложения заявки в контекст шаблона."""
         context = super().get_context_data(**kwargs)
 
         context["attachments"] = self.object.attachments.filter(
@@ -145,30 +177,46 @@ class RequestUpdateView(RequestMixin, LoginRequiredMixin, UserPassesTestMixin, U
         return context
 
     def form_valid(self, form):
+        """Сохраняет изменения заявки и 
+        удаляет выбранные вложения."""
         response = super().form_valid(form)
 
-        delete_attachments(self.object.attachments.filter(comment__isnull=True), self.request.POST)
+        delete_attachments(
+            self.object.attachments.filter(comment__isnull=True),
+            self.request.POST
+        )
 
         return response
 
 
-class RequestDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
+class RequestDeleteView(
+    LoginRequiredMixin,
+    UserPassesTestMixin,
+    DeleteView
+):
+    """Представление для удаления заявки её автором."""
 
     model = Request
     template_name = 'service_requests/request_confirm_delete.html'
     success_url = reverse_lazy('requests:index')
 
     def test_func(self):
+        """Проверяет, что текущий пользователь 
+        является автором заявки."""
         obj = self.get_object()
         return obj.author == self.request.user
 
 
 class RequestDetailView(LoginRequiredMixin, DetailView):
+    """Представление для просмотра подробной 
+    информации о заявке."""
 
     model = Request
     template_name = 'service_requests/request_detail.html'
 
     def get_object(self, queryset=None):
+        """Получает заявку и проверяет права 
+        пользователя на её просмотр."""
 
         obj = super().get_object(queryset)
         user = self.request.user
@@ -189,6 +237,8 @@ class RequestDetailView(LoginRequiredMixin, DetailView):
         return obj
 
     def get_queryset(self):
+        """Оптимизирует получение заявки, комментариев, 
+        вложений и связанных объектов."""
         reply_queryset = (
             Comment.objects
             .select_related("author")
@@ -230,6 +280,8 @@ class RequestDetailView(LoginRequiredMixin, DetailView):
         )
 
     def get_context_data(self, **kwargs):
+        """Формирует контекст страницы с заявкой и 
+        определяет доступные пользователю действия."""
         user = self.request.user
         request_obj = self.object
 
@@ -279,6 +331,8 @@ class RequestDetailView(LoginRequiredMixin, DetailView):
 
 @login_required
 def take_request(request, pk):
+    """Назначает заявку специалисту с 
+    проверкой категории и текущего статуса."""
 
     if request.method != 'POST':
         return redirect('requests:index')
@@ -319,6 +373,8 @@ def take_request(request, pk):
 
 @login_required
 def change_status(request, pk):
+    """Изменяет статус заявки специалистом, 
+    которому она назначена."""
 
     obj = get_object_or_404(Request, pk=pk)
     user = request.user
@@ -327,7 +383,9 @@ def change_status(request, pk):
         return redirect('requests:index')
 
     if user.role != 'Specialist':
-        raise PermissionDenied('Только специалист может изменять статус заявки.')
+        raise PermissionDenied(
+            'Только специалист может изменять статус заявки.'
+        )
 
     if obj.specialist != user:
         raise PermissionDenied('Нельзя изменять статус чужой заявки.')
@@ -344,21 +402,36 @@ def change_status(request, pk):
     return redirect("requests:detail", pk=obj.pk)
 
 
-class CommentCreateView(LoginRequiredMixin, CommentMixin, UserPassesTestMixin, CreateView):
+class CommentCreateView(
+    LoginRequiredMixin,
+    CommentMixin,
+    UserPassesTestMixin,
+    CreateView
+):
+    """Представление для создания комментариев и ответов к ним."""
 
     form_class = CommentForm
     template_name = 'service_requests/comment_form.html'
 
     def test_func(self):
-        return self.request.user in (self.request_obj.author, self.request_obj.specialist)
+        """Разрешает добавление комментариев автору 
+        заявки и назначенному специалисту."""
+        return self.request.user in (
+            self.request_obj.author,
+            self.request_obj.specialist
+        )
 
     def form_valid(self, form):
+        """Назначает автору и заявке соответствующие 
+        объекты перед сохранением комментария."""
         form.instance.author = self.request.user
         form.instance.request = self.request_obj
         form.instance.parent = self.get_parent()
         return super().form_valid(form)
 
     def get_parent(self):
+        """Получает родительский комментарий для 
+        ответа в рамках текущей заявки."""
         parent_id = self.request.POST.get("parent_id")
 
         if not parent_id:
@@ -371,29 +444,51 @@ class CommentCreateView(LoginRequiredMixin, CommentMixin, UserPassesTestMixin, C
             parent__isnull=True,
         )
 
-class CommentUpdateView(LoginRequiredMixin, CommentMixin, UserPassesTestMixin, UpdateView):
+class CommentUpdateView(
+    LoginRequiredMixin,
+    CommentMixin,
+    UserPassesTestMixin,
+    UpdateView
+):
+    """Представление для редактирования 
+    комментариев их авторами."""
 
     form_class = CommentForm
     template_name = 'service_requests/comment_form.html'
 
     def test_func(self):
+        """Проверяет, что текущий пользователь 
+        является автором комментария."""
         comment = self.get_object()
         user = self.request.user
 
         return comment.author == user
 
     def form_valid(self, form):
+        """Сохраняет изменения комментария 
+        и удаляет выбранные вложения."""
         response = super().form_valid(form)
 
-        delete_attachments(self.object.attachments.all(), self.request.POST)
+        delete_attachments(
+            self.object.attachments.all(),
+            self.request.POST
+        )
 
         return response
 
 
-class CommentDeleteView(LoginRequiredMixin, CommentMixin, UserPassesTestMixin, DeleteView):
+class CommentDeleteView(
+    LoginRequiredMixin,
+    CommentMixin,
+    UserPassesTestMixin,
+    DeleteView
+):
+    """Представление для удаления комментариев их авторами."""
 
     template_name = 'service_requests/comment_delete_confirm.html'
 
     def test_func(self):
+        """Проверяет, что текущий пользователь 
+        является автором комментария."""
         comment = self.get_object()
         return comment.author == self.request.user

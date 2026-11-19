@@ -1,13 +1,19 @@
+"""Формы пользователей"""
+
 from django import forms
-from .models import User, ResidentProfile, SpecialistProfile
-from requests.models import Category
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from .validators import contract_number_validator, room_number_validator
 from django.db import transaction
+
+from requests.models import Category
+
+from .models import ResidentProfile, SpecialistProfile, User
+from .validators import contract_number_validator, room_number_validator
 
 
 class UserCreateForm(forms.ModelForm):
+    """Базовая форма создания пользователя с 
+    проверкой и установкой пароля."""
 
     password1 = forms.CharField(
         max_length=20,
@@ -22,9 +28,18 @@ class UserCreateForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ['username', 'first_name', 'last_name', 'patronymic', 'email', 'phone']
+        fields = [
+            'username',
+            'first_name',
+            'last_name',
+            'patronymic',
+            'email',
+            'phone'
+        ]
 
     def clean(self):
+        """Проверяет совпадение паролей и 
+        соответствие пароля требованиям безопасности."""
         cleaned_data = super().clean()
         password1 = cleaned_data.get('password1')
         password2 = cleaned_data.get('password2')
@@ -40,6 +55,7 @@ class UserCreateForm(forms.ModelForm):
         return cleaned_data
 
     def save(self, commit=True):
+        """Сохраняет пользователя с зашифрованным паролем."""
         user = super().save(commit=False)
         user.set_password(self.cleaned_data["password1"])
 
@@ -50,6 +66,8 @@ class UserCreateForm(forms.ModelForm):
 
 
 class ResidentCreateForm(UserCreateForm):
+    """Форма создания учётной записи 
+    проживающего и его профиля."""
 
     contract_number = forms.CharField(
         max_length=13,
@@ -64,6 +82,8 @@ class ResidentCreateForm(UserCreateForm):
 
     @transaction.atomic
     def save(self, commit=True):
+        """Создаёт пользователя с ролью проживающего 
+        и связанный профиль."""
         user = super().save(commit=False)
         user.role = "Resident"
 
@@ -78,6 +98,8 @@ class ResidentCreateForm(UserCreateForm):
 
 
 class SpecialistCreateForm(UserCreateForm):
+    """Форма создания учётной записи специалиста 
+    с выбором категорий работ."""
 
     categories = forms.ModelMultipleChoiceField(
         queryset=Category.objects.all(),
@@ -86,6 +108,8 @@ class SpecialistCreateForm(UserCreateForm):
     )
 
     def clean(self):
+        """Проверяет, что для специалиста 
+        выбрана хотя бы одна категория."""
         cleaned_data = super().clean()
 
         if not cleaned_data.get('categories'):
@@ -98,6 +122,8 @@ class SpecialistCreateForm(UserCreateForm):
 
     @transaction.atomic
     def save(self, commit=True):
+        """Создаёт пользователя с ролью специалиста 
+        и назначает ему категории работ."""
         user = super().save(commit=False)
         user.role = "Specialist"
 
@@ -109,6 +135,7 @@ class SpecialistCreateForm(UserCreateForm):
 
 
 class UserUpdateForm(forms.ModelForm):
+    """Базовая форма редактирования данных пользователя."""
     class Meta:
         model = User
         fields = [
@@ -123,6 +150,8 @@ class UserUpdateForm(forms.ModelForm):
 
 
 class ResidentUpdateForm(UserUpdateForm):
+    """Форма редактирования данных проживающего 
+    и его профиля."""
     contract_number = forms.CharField(
         max_length=13,
         label="Номер договора",
@@ -138,6 +167,8 @@ class ResidentUpdateForm(UserUpdateForm):
         fields = UserUpdateForm.Meta.fields
 
     def __init__(self, *args, profile=None, **kwargs):
+        """Инициализирует форму и заполняет поля данными 
+        профиля проживающего."""
         super().__init__(*args, **kwargs)
 
         if profile:
@@ -146,6 +177,8 @@ class ResidentUpdateForm(UserUpdateForm):
 
     @transaction.atomic
     def save(self, commit=True):
+        """Сохраняет данные пользователя и обновляет 
+        или создаёт его профиль."""
         user = super().save(commit=False)
 
         if commit:
@@ -163,6 +196,8 @@ class ResidentUpdateForm(UserUpdateForm):
 
 
 class SpecialistUpdateForm(UserUpdateForm):
+    """Форма редактирования данных специалиста и 
+    его категорий работ."""
     categories = forms.ModelMultipleChoiceField(
         queryset=Category.objects.all(),
         label="Категории",
@@ -173,6 +208,8 @@ class SpecialistUpdateForm(UserUpdateForm):
         fields = UserUpdateForm.Meta.fields
 
     def __init__(self, *args, profile=None, **kwargs):
+        """Инициализирует форму и загружает текущие 
+        категории специалиста."""
         super().__init__(*args, **kwargs)
 
         if profile:
@@ -180,12 +217,14 @@ class SpecialistUpdateForm(UserUpdateForm):
 
     @transaction.atomic
     def save(self, commit=True):
+        """Сохраняет данные пользователя и обновляет 
+        его профиль и категории."""
         user = super().save(commit=False)
 
         if commit:
             user.save()
 
-            profile, created = SpecialistProfile.objects.get_or_create(
+            profile, _ = SpecialistProfile.objects.get_or_create(
                 user=user
             )
             profile.categories.set(self.cleaned_data["categories"])
